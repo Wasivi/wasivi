@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WASIVI — FAQ</title>
+<style>
+  :root {
+    --black: #15130f;
+    --gold-bright: #a89c3e;
+    --paper: #f4f2ea;
+    --muted: #8c8a80;
+    --lightgray: #b8b8b6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--black);
+    color: var(--paper);
+    font-family: 'Engravers Gothic', 'Copperplate', Garamond, serif;
+    line-height: 1.6;
+  }
+  nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    padding: 28px 24px;
+    font-size: 15px;
+    letter-spacing: 0.1em;
+  }
+  nav .menu-item { position: relative; }
+  nav a { color: var(--muted); text-decoration: none; }
+  nav a.active { color: var(--gold-bright); }
+  nav .dropdown {
+    display: none;
+    position: absolute;
+    top: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #101010;
+    border: 1px solid #201f1b;
+    padding: 14px 28px;
+    white-space: nowrap;
+    gap: 28px;
+    z-index: 10;
+  }
+  nav .menu-item:hover .dropdown,
+  nav .dropdown.open { display: flex; }
+  nav .dropdown a { padding: 0; font-size: 14px; color: var(--muted); }
+  nav .dropdown a:hover, nav .dropdown a.active { color: var(--gold-bright); }
+
+  .wrap { max-width: 760px; margin: 20px auto 100px; padding: 0 24px; }
+  h1 { font-size: 30px; font-weight: 400; color: #e6e8e9; text-align: center; margin: 0 0 12px; }
+  .section-label { font-size: 12px; letter-spacing: 0.12em; color: var(--gold-bright); margin: 44px 0 4px; }
+  .section-label:first-of-type { margin-top: 40px; }
+
+  details.qa { border-bottom: 1px solid #1c1c19; }
+  details.qa summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+    font-size: 17px;
+    color: var(--paper);
+  }
+  details.qa summary::-webkit-details-marker { display: none; }
+  .toggle-icon { font-size: 20px; color: var(--gold-bright); margin-left: 16px; flex-shrink: 0; }
+  details.qa .answer { padding: 0 0 22px; font-size: 15px; color: var(--lightgray); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="menu-item"><a href="index.html">HOME</a></div>
+  <div class="menu-item">
+    <a href="#" class="companyToggle active">COMPANY</a>
+    <div class="dropdown companyDropdown">
+      <a href="about.html">About</a>
+      <a href="how-we-work.html">How We Work</a>
+      <a href="faq.html" class="active">FAQ</a>
+    </div>
+  </div>
+  <div class="menu-item"><a href="projects.html">PROJECTS</a></div>
+  <div class="menu-item"><a href="https://read.wasivi.com">SUBSTACK</a></div>
+</nav>
+
+<div class="wrap">
+  <h1>FAQ</h1>
+
+  <div class="section-label">GENERAL</div>
+
+  <details class="qa">
+    <summary>What does WASIVI build? <span class="toggle-icon">+</span></summary>
+    <div class="answer">WASIVI helps founders and teams turn early ideas into clear, credible digital products. We shape MVPs, prototypes, launch experiences, AI-enabled concepts, and presentation stories that help people understand what to build next.</div>
+  </details>
+
+  <details class="qa">
+    <summary>Can I start with something focused before committing to a larger build? <span class="toggle-icon">+</span></summary>
+    <div class="answer">Yes. Many engagements begin with an MVP Blueprint, product strategy session, presentation, or prototype. Start with the work that creates the most clarity now, then decide what comes next.</div>
+  </details>
+
+  <div class="section-label">ENGAGEMENT</div>
+
+  <details class="qa">
+    <summary>How does an engagement typically start? <span class="toggle-icon">+</span></summary>
+    <div class="answer">Most engagements begin with a focused discovery phase. We clarify the opportunity, the user, the first useful version, and the decisions needed before design or development begins.</div>
+  </details>
+
+  <details class="qa">
+    <summary>What does a typical engagement look like? <span class="toggle-icon">+</span></summary>
+    <div class="answer">Work is organized into defined phases with a clear scope, tangible deliverables, and a decision point at the end of each phase. The next phase begins only when the work has earned it.</div>
+  </details>
+
+  <details class="qa">
+    <summary>What's the typical timeline? <span class="toggle-icon">+</span></summary>
+    <div class="answer">A focused phase may take a few weeks. More involved product, prototype, or build work can extend over several phases, depending on complexity and the pace of decision-making.</div>
+  </details>
+
+  <div class="section-label">INVESTMENT &amp; HANDOFF</div>
+
+  <details class="qa">
+    <summary>What's the investment for an engagement? <span class="toggle-icon">+</span></summary>
+    <div class="answer">It depends on the shape of the work. Focused engagements are scoped as fixed projects; larger product programs are priced phase by phase. You will know the scope, deliverables, and investment for a phase before it begins.</div>
+  </details>
+
+  <details class="qa">
+    <summary>Who owns the work once it is complete? <span class="toggle-icon">+</span></summary>
+    <div class="answer">Once the agreed work is complete and final payment is received, you own the final project-specific deliverables. WASIVI retains ownership of its pre-existing methods, templates, tools, and reusable systems.</div>
+  </details>
+
+  <div class="section-label">TEAM &amp; AI</div>
+
+  <details class="qa">
+    <summary>Who's actually doing the work? <span class="toggle-icon">+</span></summary>
+    <div class="answer">WASIVI is founder-led. I lead product direction, design, presentation storytelling, and the core build, and bring in trusted specialists when a project needs additional research, technical, brand, or domain expertise.</div>
+  </details>
+
+  <details class="qa">
+    <summary>How is AI used in your process? <span class="toggle-icon">+</span></summary>
+    <div class="answer">AI helps accelerate exploration, research synthesis, prototyping, and selected implementation work. Human product judgment and design direction guide every decision, and every client-facing outcome is reviewed before delivery.</div>
+  </details>
+
+  <details class="qa">
+    <summary>Can WASIVI work with my existing team or developer? <span class="toggle-icon">+</span></summary>
+    <div class="answer">Yes. WASIVI can lead a focused project independently or work alongside your internal team, agency, or developer. The goal is a clear handoff and a product direction your team can continue to build.</div>
+  </details>
+
+</div>
+
+<script>
+  document.querySelectorAll('details.qa').forEach(function(d){
+    d.addEventListener('toggle', function(){
+      var icon = d.querySelector('.toggle-icon');
+      icon.textContent = d.open ? '−' : '+';
+    });
+  });
+  document.querySelectorAll('.companyToggle').forEach(function(t){
+    t.addEventListener('click', function(e){
+      e.preventDefault();
+      var dd = t.parentElement.querySelector('.companyDropdown');
+      dd.classList.toggle('open');
+    });
+  });
+  document.addEventListener('click', function(e){
+    document.querySelectorAll('.companyDropdown.open').forEach(function(dd){
+      if (!dd.parentElement.contains(e.target)) dd.classList.remove('open');
+    });
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WASIVI — Projects</title>
+<style>
+  :root {
+    --black: #15130f;
+    --gold-bright: #a89c3e;
+    --paper: #f4f2ea;
+    --muted: #8c8a80;
+    --lightgray: #b8b8b6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--black);
+    color: var(--paper);
+    font-family: 'Engravers Gothic', 'Copperplate', Garamond, serif;
+    line-height: 1.6;
+  }
+  nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    padding: 28px 24px;
+    font-size: 15px;
+    letter-spacing: 0.1em;
+  }
+  nav .menu-item { position: relative; }
+  nav a { color: var(--muted); text-decoration: none; }
+  nav a.active { color: var(--gold-bright); }
+  nav .dropdown {
+    display: none;
+    position: absolute;
+    top: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #101010;
+    border: 1px solid #201f1b;
+    padding: 14px 28px;
+    white-space: nowrap;
+    gap: 28px;
+    z-index: 20;
+  }
+  nav .menu-item:hover .dropdown,
+  nav .dropdown.open { display: flex; }
+  nav .dropdown a { padding: 0; font-size: 14px; color: var(--muted); }
+  nav .dropdown a:hover, nav .dropdown a.active { color: var(--gold-bright); }
+
+  .hero-line { max-width: 760px; margin: 8px auto 0; padding: 0 24px; text-align: center; }
+  .hero-line h1 { font-size: 30px; font-weight: 400; color: #e6e8e9; margin: 0 0 12px; }
+  .hero-line p { font-size: 17px; color: var(--lightgray); margin: 0; }
+
+  .grid {
+    max-width: 1000px;
+    margin: 44px auto 100px;
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px;
+  }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    border: 1px solid #201f1b;
+    background: #101010;
+    display: flex;
+    flex-direction: column;
+  }
+  .thumb {
+    width: 100%;
+    height: 220px;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(184,154,46,0.10), transparent 55%),
+      linear-gradient(160deg, #17160f 0%, #0d0d0b 100%);
+    border-bottom: 1px solid #201f1b;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--gold-bright); font-size: 12px; letter-spacing: 0.08em;
+    text-align: center; padding: 8px; overflow: hidden;
+  }
+  .thumb video { width: 100%; height: 100%; object-fit: cover; }
+  .cap { padding: 18px 20px 20px; flex: 1; display: flex; flex-direction: column; }
+  .cap h3 { margin: 0 0 4px; font-size: 17px; font-weight: 400; letter-spacing: 0.02em; }
+  .cap .date { font-size: 12px; color: var(--muted); letter-spacing: 0.06em; margin-bottom: 12px; }
+  .cap .blurb { font-size: 15px; color: var(--lightgray); margin: 0 0 16px; flex: 1; }
+  .cap button {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--gold-bright);
+    color: var(--gold-bright);
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    padding: 0 0 3px;
+    cursor: pointer;
+  }
+
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(8,7,5,0.86);
+    z-index: 50;
+    padding: 40px 24px;
+    overflow-y: auto;
+  }
+  .overlay.open { display: block; }
+  .modal {
+    max-width: 720px;
+    margin: 0 auto;
+    background: #131210;
+    border: 1px solid #2a2822;
+    padding: 40px 44px 44px;
+    position: relative;
+  }
+  .modal h2 { font-size: 24px; font-weight: 400; margin: 0 0 6px; color: var(--paper); }
+  .modal .date { font-size: 12px; color: var(--muted); letter-spacing: 0.06em; margin-bottom: 22px; }
+  .modal p { font-size: 15px; color: var(--lightgray); margin: 0 0 14px; }
+  .modal .meta { font-size: 14px; color: var(--lightgray); margin-top: 18px; line-height: 1.6; }
+  .modal a.live {
+    display: inline-block; margin-top: 16px; color: var(--gold-bright);
+    text-decoration: none; font-size: 13px; border-bottom: 1px solid var(--gold-bright);
+  }
+  .modal .close {
+    position: absolute; top: 16px; right: 20px;
+    background: none; border: none; color: var(--muted);
+    font-size: 26px; cursor: pointer; font-family: inherit; line-height: 1;
+  }
+  @media (max-width: 640px) { .modal { padding: 34px 24px 30px; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="menu-item"><a href="index.html">HOME</a></div>
+  <div class="menu-item">
+    <a href="#" class="companyToggle">COMPANY</a>
+    <div class="dropdown companyDropdown">
+      <a href="about.html">About</a>
+      <a href="how-we-work.html">How We Work</a>
+      <a href="faq.html">FAQ</a>
+    </div>
+  </div>
+  <div class="menu-item"><a href="projects.html" class="active">PROJECTS</a></div>
+  <div class="menu-item"><a href="https://read.wasivi.com">SUBSTACK</a></div>
+</nav>
+
+<div class="hero-line">
+  <h1>You imagine it. We build it.</h1>
+  <p>Prototypes, decks, working products — whatever form the idea needs.</p>
+</div>
+
+<div class="grid">
+
+  <div class="card">
+    <div class="thumb">[in progress]</div>
+    <div class="cap">
+      <h3>METU</h3><div class="date">In progress</div>
+      <p class="blurb">A patient shouldn't need a research background to find the trial that could save their life.</p>
+      <button data-project="metu">View details →</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="thumb"><video muted loop playsinline src="videos/sightline.mp4"></video></div>
+    <div class="cap">
+      <h3>SIGHTLINE</h3><div class="date">&nbsp;</div>
+      <p class="blurb">Prior authorization is where care stalls. This is where it moves.</p>
+      <button data-project="sightline">View details →</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="thumb">[video: On Cue]</div>
+    <div class="cap">
+      <h3>On Cue</h3><div class="date">&nbsp;</div>
+      <p class="blurb">On a set, the gap between what's decided and what reaches the crew costs hours. This closes it.</p>
+      <button data-project="oncue">View details →</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="thumb"><video muted loop playsinline src="videos/linkup.mp4"></video></div>
+    <div class="cap">
+      <h3>LinkUp</h3><div class="date">July</div>
+      <p class="blurb">Four people want dinner. It takes nine days and forty-one messages. Not anymore.</p>
+      <button data-project="linkup">View details →</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="thumb">[slides: Hyperscale deck]</div>
+    <div class="cap">
+      <h3>Hyperscale Data Center Intelligence</h3><div class="date">June</div>
+      <p class="blurb">Everything about a data center deal is public. None of it is read together. This reads it together.</p>
+      <button data-project="hyperscale">View details →</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="thumb"><video muted loop playsinline src="videos/work-clarity.mp4"></video></div>
+    <div class="cap">
+      <h3>Work Clarity</h3><div class="date">May</div>
+      <p class="blurb">Your rights at work exist. Finding them shouldn't be the hard part.</p>
+      <button data-project="workclarity">View details →</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="thumb"><video muted loop playsinline src="videos/bloombase.mp4"></video></div>
+    <div class="cap">
+      <h3>Bloombase</h3><div class="date">April</div>
+      <p class="blurb">Somewhere in seventy thousand photos is the one you're looking for.</p>
+      <button data-project="bloombase">View details →</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="close" id="closeModal">×</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+  var projects = {
+    metu: {
+      title: "METU", date: "In progress",
+      body: "<p>An oncology trial access navigator, built to close the gap between patients and the clinical research that could help them.</p><p>The trials exist. The eligibility criteria are public. What's missing is a way for a patient — or the person helping them — to find the ones that actually apply without a research background and weeks of reading.</p>",
+      meta: "Status: In progress"
+    },
+    sightline: {
+      title: "SIGHTLINE", date: "",
+      body: "<p>Prior authorization is where care stalls — a retina practice can lose hours a day just tracking which payer needs what, for which patient, at which stage.</p><p>SIGHTLINE tracks it end to end: a nine-status state machine, per-payer document checklists, and a HIPAA-reflex quick-lock built for a click, not a login flow, when someone walks past the screen.</p><p>It's built as a single self-contained tool — payer- and specialty-agnostic underneath, with SIGHTLINE as the retina-branded first cut. Dr. Ravi Parikh is the confirmed first customer.</p>",
+      meta: "Team: Solo"
+    },
+    oncue: {
+      title: "On Cue", date: "",
+      body: "<p>On a film or television set, decisions get made at the top and take hours to reach the people who have to act on them. That lag costs real time and real money, every shooting day.</p><p>On Cue compresses that gap — built from in-person discovery on an active production, working through crew to ADs and producers to find where the pipeline actually breaks.</p>",
+      meta: "Status: In progress"
+    },
+    linkup: {
+      title: "LinkUp", date: "July",
+      body: "<p>Four people want to have dinner. That is the entire problem, and it takes nine days and forty-one messages to solve, because someone has to hold every constraint in their head at once — who's free Thursday, who won't do Thai, who isn't crossing a bridge on a weeknight, whether it rains.</p><p>So I built the thing that holds it instead. Five named agents, each owning one piece: one parses what you actually said, one handles scheduling, one matches venues, one negotiates group consensus, one confirms. You type a sentence the way you'd say it out loud — dinner for four, Japanese, Soho, the 25th — and it comes back understood, not as a form you filled out.</p><p>Say it once. Let it get handled.</p>",
+      meta: "Tech stack: Next.js, TypeScript, OpenRouter/Claude, Yelp Fusion, Open-Meteo, Nominatim<br>Team: Natalie Walker, Bo Moldenhauer"
+    },
+    hyperscale: {
+      title: "Hyperscale Data Center Intelligence", date: "June",
+      body: "<p>James is 61. He fixes air conditioners in a county that just approved a hyperscale data center, and he found out the way everyone finds out — after. He is not a researcher or an analyst. He wants to know who decided this, and whether there is anything left he can do.</p><p>Everything he needs is public. Permits, utility queue positions, state filings, lobbying disclosures — nine kinds of record, none of them read together, which is the same as none of them read at all.</p><p>I built the instrument that reads them together. Six views over a ten-actor, eight-decision-layer framework that traces a project through regulatory, financial, and legal systems long before it reaches a county meeting. The finding underneath it: planned-to-operating ratio predicts conflict better than facility count. Georgia sits at 1.50, Indiana at 1.42, and Virginia — the largest market in the country — at 0.72.</p><p>By the time it's public, it's already done. Not anymore.</p>",
+      meta: "Tech stack: React, Vite, Netlify, Claude API with live web search, Netlify serverless functions<br>Team: Natalie Walker, Andres Ballares"
+    },
+    workclarity: {
+      title: "Work Clarity", date: "May",
+      body: "<p>Everybody loves you when you're up. Nobody's around when you're down — and that's exactly when you need to know your rights.</p><p>The information exists. It's scattered across agencies, legal aid sites, and forums that assume you already know what you're looking for. Work Clarity pulls it into one place and puts specialized AI guides between the user and the mess, so someone in the worst week of their working life can find out what applies to them and what to do next.</p><p>Clarity, when you need it most.</p>",
+      meta: "Tech stack: React, Vite, Supabase, AI guide integration, external APIs<br>Team: Solo"
+    },
+    bloombase: {
+      title: "Bloombase", date: "April",
+      body: "<p>Somewhere in 70,000 photos is the one you're looking for, and a folder isn't a system.</p><p>Large flower photo archives grow past the point any album view or filename convention can handle — the picture you need exists, but finding it costs more than it should every single time.</p><p>Bloombase organizes it. The harder work wasn't adding features, it was cutting them — scoping a much larger initial concept down to the MVP that actually solves the finding problem, then building it end to end alone.</p>",
+      meta: "Tech stack: React, Vite, Supabase<br>Team: Solo"
+    }
+  };
+
+  var overlay = document.getElementById('overlay');
+  var content = document.getElementById('modalContent');
+
+  document.querySelectorAll('.cap button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var p = projects[btn.getAttribute('data-project')];
+      var html = '<h2>' + p.title + '</h2>';
+      if (p.date) html += '<div class="date">' + p.date + '</div>';
+      html += p.body;
+      if (p.meta) html += '<div class="meta">' + p.meta + '</div>';
+      content.innerHTML = html;
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    });
+  });
+
+  function closeOverlay(){
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.getElementById('closeModal').addEventListener('click', closeOverlay);
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) closeOverlay(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeOverlay(); });
+
+  document.querySelectorAll('.companyToggle').forEach(function(t){
+    t.addEventListener('click', function(e){
+      e.preventDefault();
+      t.parentElement.querySelector('.companyDropdown').classList.toggle('open');
+    });
+  });
+  document.addEventListener('click', function(e){
+    document.querySelectorAll('.companyDropdown.open').forEach(function(dd){
+      if (!dd.parentElement.contains(e.target)) dd.classList.remove('open');
+    });
+  });
+</script>
+
+</body>
+</html>
