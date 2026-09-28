@@ -14,10 +14,10 @@ const SPIN_SPEED = 0.3; // rad/s — one turn every ~21s
 const MAX_TILT = 0.22; // rad
 const KEY_LIGHT_POS = new THREE.Vector3(-3.6, 2.4, 2.6);
 
-const GLYPH_DEPTH = 0.42;
-const GLYPH_Z = -0.1; // back face; the glyph projects well forward of the ring
+const GLYPH_DEPTH = 0.78;
+const GLYPH_Z = -0.14; // back face; the glyph juts far out in front of the ring
 const RING_INNER = 0.87;
-const RING_DEPTH = 0.18;
+const RING_DEPTH = 0.34;
 
 // Dev only: /?angle=150 freezes the spin at that many degrees, for tuning.
 const FROZEN_ANGLE = import.meta.env.DEV
@@ -173,16 +173,11 @@ function MedallionBody() {
         />
       </mesh>
 
-      {/* Black lacquer face, recessed inside the ring. */}
+      {/* True black face, recessed inside the ring. Unlit on purpose: even a
+          4% reflection of the warm key light reads as brown on black. */}
       <mesh position={[0, 0, -0.03]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[RING_INNER + 0.005, RING_INNER + 0.005, 0.03, 128]} />
-        <meshPhysicalMaterial
-          color="#070707"
-          metalness={0.2}
-          roughness={0.35}
-          clearcoat={0.35}
-          clearcoatRoughness={0.2}
-        />
+        <meshBasicMaterial color="#000000" />
       </mesh>
 
       <mesh geometry={ringGeo}>
@@ -255,34 +250,35 @@ const dustVertex = /* glsl */ `
   varying float vBlur;
   varying float vAlpha;
   varying float vTint;
+  varying float vAngle;
+  varying float vTumble;
 
   void main() {
     vec3 p = position;
     float t = uTime;
-    // Slow wander + gentle rise, wrapped so motes recycle.
-    p.x += sin(t * 0.13 + aSeed * 6.28) * 0.22 + sin(t * 0.07 + aSeed * 17.0) * 0.12;
-    p.z += cos(t * 0.11 + aSeed * 9.1) * 0.22;
-    p.y = mod(p.y + t * (0.03 + aSeed * 0.04) + 2.2, 4.4) - 2.2;
-    float edgeFade = smoothstep(2.2, 1.7, abs(p.y));
+    // Falls slowly like snow, swaying side to side; wraps top-to-bottom.
+    p.x += sin(t * 0.35 + aSeed * 6.28) * 0.18 + sin(t * 0.13 + aSeed * 17.0) * 0.1;
+    p.z += cos(t * 0.27 + aSeed * 9.1) * 0.15;
+    p.y = mod(p.y - t * (0.06 + aSeed * 0.07) + 2.2, 4.4) - 2.2;
+    float edgeFade = smoothstep(2.2, 1.8, abs(p.y));
 
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     float depth = -mv.z;
-    vBlur = clamp(abs(depth - uFocus) * uAperture, 0.0, 1.0);
+    // Only the very nearest flakes soften; the rest stay crisp.
+    vBlur = clamp(abs(depth - uFocus) * uAperture - 0.25, 0.0, 1.0);
 
-    float bokeh = 1.0 + vBlur * 7.0;
-    gl_PointSize = aSize * bokeh * uPixelRatio * uScale / depth;
+    gl_PointSize = aSize * (1.0 + vBlur * 2.5) * uPixelRatio * uScale / depth;
     gl_Position = projectionMatrix * mv;
 
-    // Catch the key light: brightest inside its cone, dim outside.
-    vec3 toMote = normalize(p - uKeyPos);
-    vec3 keyDir = normalize(-uKeyPos);
-    float cone = smoothstep(0.7, 0.95, dot(toMote, keyDir));
-    float lit = 0.22 + 0.78 * cone;
-    // Occasional glint as a mote turns toward the light.
-    float glint = pow(max(sin(t * (0.6 + aSeed) + aSeed * 40.0), 0.0), 24.0) * 1.6;
+    // Each flake spins in the image plane and tumbles edge-on and back.
+    vAngle = aSeed * 6.28 + t * (0.3 + aSeed * 0.6);
+    vTumble = abs(cos(aSeed * 31.0 + t * (0.8 + aSeed * 1.2)));
 
-    // Spread energy over the larger disc so bokeh stays dim, not blown out.
-    vAlpha = (lit + glint * cone) * edgeFade / (bokeh * bokeh * 0.35 + 0.65);
+    // Flakes in the key light's cone are brightest, but none go dim enough
+    // to read as brown — dim gold on black looks like chocolate.
+    vec3 toMote = normalize(p - uKeyPos);
+    float cone = smoothstep(0.7, 0.95, dot(toMote, normalize(-uKeyPos)));
+    vAlpha = (0.7 + 0.5 * cone) * edgeFade / (1.0 + vBlur * 2.0);
     vTint = aTint;
   }
 `;
@@ -293,19 +289,25 @@ const dustFragment = /* glsl */ `
   varying float vBlur;
   varying float vAlpha;
   varying float vTint;
+  varying float vAngle;
+  varying float vTumble;
 
   void main() {
-    float d = length(gl_PointCoord - 0.5) * 2.0;
-    // Sharp motes: bright core, quick falloff. Blurred: flat disc, soft edge.
-    float sharp = exp(-d * d * 7.0);
-    float disc = 1.0 - smoothstep(0.7, 1.0, d);
-    float shape = mix(sharp, disc * 0.6, vBlur);
+    vec2 q = gl_PointCoord - 0.5;
+    float c = cos(vAngle), s = sin(vAngle);
+    q = mat2(c, -s, s, c) * q;
+    // Tumbling foil flake: a small diamond that thins as it turns edge-on.
+    q.x /= max(vTumble, 0.18);
+    float d = abs(q.x) + abs(q.y);
+    float edge = 0.04 + vBlur * 0.2;
+    float shape = 1.0 - smoothstep(0.34 - edge, 0.34, d);
     if (shape < 0.01) discard;
-    vec3 col = mix(uGold, uChrome, vTint);
-    // Premultiplied additive: alpha = brightness so glow composites cleanly
-    // over the transparent canvas instead of punching dark holes in it.
-    vec3 c = col * shape * vAlpha;
-    gl_FragColor = vec4(c, max(c.r, max(c.g, c.b)));
+    // Glint when the flake turns face-on to the viewer.
+    float glint = 0.55 + 0.9 * pow(vTumble, 6.0);
+    vec3 col = mix(uGold, uChrome, vTint) * shape * vAlpha * glint;
+    // Premultiplied additive: alpha = brightness so flakes composite cleanly
+    // over the transparent canvas.
+    gl_FragColor = vec4(col, max(col.r, max(col.g, col.b)));
   }
 `;
 
@@ -326,7 +328,7 @@ function GoldDust({ count, focus }) {
       positions[i * 3 + 1] = (Math.random() * 2 - 1) * 2.2;
       positions[i * 3 + 2] = -3 + Math.random() * 7;
       seeds[i] = Math.random();
-      sizes[i] = 0.9 + Math.pow(Math.random(), 3) * 2.4;
+      sizes[i] = 1.4 + Math.pow(Math.random(), 2) * 2.2;
       tints[i] = Math.random() < 0.22 ? 0.85 : 0;
     }
     const g = new THREE.BufferGeometry();
@@ -341,12 +343,12 @@ function GoldDust({ count, focus }) {
     () => ({
       uTime: { value: 0 },
       uFocus: { value: CAMERA_END_Z },
-      uAperture: { value: 0.38 },
+      uAperture: { value: 0.22 },
       uPixelRatio: { value: 1 },
       uScale: { value: 1 },
       uKeyPos: { value: KEY_LIGHT_POS.clone() },
-      uGold: { value: new THREE.Color('#ecd67a') },
-      uChrome: { value: new THREE.Color('#dde2e7') },
+      uGold: { value: new THREE.Color('#f4db6e') },
+      uChrome: { value: new THREE.Color('#eef1f4') },
     }),
     []
   );
@@ -356,7 +358,7 @@ function GoldDust({ count, focus }) {
     u.uTime.value += Math.min(delta, 0.1) * (prefersReducedMotion ? 0.3 : 1);
     u.uFocus.value = focus.current;
     u.uPixelRatio.value = dpr;
-    u.uScale.value = size.height * 0.024; // point size tracks canvas size
+    u.uScale.value = size.height * 0.03; // point size tracks canvas size
   });
 
   return (
@@ -372,51 +374,6 @@ function GoldDust({ count, focus }) {
         premultipliedAlpha
       />
     </points>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Atmosphere: a faint warm haze behind the medallion, pooled toward the key
-// light, so the dark around it reads as air rather than a flat background.
-// ---------------------------------------------------------------------------
-
-const hazeFragment = /* glsl */ `
-  uniform vec3 uColor;
-  uniform float uTime;
-  varying vec2 vUv;
-  void main() {
-    vec2 p = vUv - 0.5;
-    float core = exp(-dot(p - vec2(-0.08, 0.06), p - vec2(-0.08, 0.06)) * 9.0);
-    float wide = exp(-dot(p, p) * 3.5) * 0.35;
-    float breathe = 0.92 + 0.08 * sin(uTime * 0.35);
-    vec3 c = uColor * (core + wide) * breathe;
-    gl_FragColor = vec4(c, max(c.r, max(c.g, c.b)));
-  }
-`;
-
-function Haze() {
-  const mat = useRef();
-  const uniforms = useMemo(
-    () => ({ uColor: { value: new THREE.Color('#3b3320') }, uTime: { value: 0 } }),
-    []
-  );
-  useFrame((_, delta) => {
-    mat.current.uniforms.uTime.value += Math.min(delta, 0.1);
-  });
-  return (
-    <mesh position={[0, 0, -2.6]}>
-      <planeGeometry args={[9, 9]} />
-      <shaderMaterial
-        ref={mat}
-        vertexShader={'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }'}
-        fragmentShader={hazeFragment}
-        uniforms={uniforms}
-        transparent
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-        premultipliedAlpha
-      />
-    </mesh>
   );
 }
 
@@ -493,7 +450,6 @@ export default function MedallionScene() {
       >
         <PerformanceMonitor onDecline={() => setDpr(1)} onIncline={() => setDpr(1.75)} />
         <Lighting />
-        <Haze />
         <Suspense fallback={null}>
           <Medallion pointer={pointer} />
           <CameraRig focus={focus} />
