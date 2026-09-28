@@ -1,19 +1,15 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { useEffect } from 'react';
 import Nav from '../components/Nav';
 import './Home.css';
-
-// Three.js is ~500kB gzipped and only the home page needs it — code-split it
-// into its own chunk so About/FAQ/etc. never download it.
-const MedallionScene = lazy(() => import('../components/MedallionScene'));
 
 export default function Home() {
   useEffect(() => { document.title = 'WASIVI'; }, []);
 
   return (
     <section className="hero">
-      <Suspense fallback={<div className="mark-placeholder" />}>
-        <MedallionScene />
-      </Suspense>
+      <div className="mark-placeholder">
+        <video autoPlay loop muted playsInline src="/videos/hero.mp4" />
+      </div>
       <div className="wordmark">WASIVI</div>
 
       <div className="social-row">
