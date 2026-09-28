@@ -1,32 +1,35 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Environment, Lightformer, PerformanceMonitor, useGLTF } from '@react-three/drei';
+import { Environment, Lightformer, PerformanceMonitor } from '@react-three/drei';
 import * as THREE from 'three';
+import glyph from './medallionGlyph.json';
 
-// Set to e.g. '/models/medallion.glb' (draco-compressed) to swap the Meshy
-// mesh in for the placeholder. Everything else in the scene stays the same.
-const MEDALLION_URL = null;
+// Units: the chrome ring's outer radius is 1. The glyph outline was traced
+// from the hero.mp4 motif, snapped to its grid and made symmetric.
 
-const CAMERA_START_Z = 14;
-const CAMERA_END_Z = 4.3;
+const CAMERA_START_Z = 24;
+const CAMERA_END_Z = 6.8;
 const ENTRANCE_SECONDS = 3.4;
-const SPIN_SPEED = 0.28; // rad/s — one turn every ~22s
-const MAX_TILT = 0.2; // rad
+const SPIN_SPEED = 0.3; // rad/s — one turn every ~21s
+const MAX_TILT = 0.22; // rad
 const KEY_LIGHT_POS = new THREE.Vector3(-3.6, 2.4, 2.6);
+
+const GLYPH_DEPTH = 0.42;
+const GLYPH_Z = -0.1; // back face; the glyph projects well forward of the ring
+const RING_INNER = 0.87;
+const RING_DEPTH = 0.18;
+
+// Dev only: /?angle=150 freezes the spin at that many degrees, for tuning.
+const FROZEN_ANGLE = import.meta.env.DEV
+  ? Number(new URLSearchParams(window.location.search).get('angle') ?? NaN)
+  : NaN;
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // ---------------------------------------------------------------------------
-// Materials — polished metal, two tones. Shared by the placeholder and the GLB.
-// ---------------------------------------------------------------------------
-
-const GOLD = { color: '#e8c47e', metalness: 0.92, roughness: 0.2, envMapIntensity: 1.1 };
-const CHROME = { color: '#f2f1ec', metalness: 1, roughness: 0.1, envMapIntensity: 1.6 };
-
-// ---------------------------------------------------------------------------
-// Pointer — tracked across the whole window, not just the (small, round) canvas.
+// Pointer — tracked across the whole window, not just the canvas.
 // ---------------------------------------------------------------------------
 
 function useWindowPointer() {
@@ -43,122 +46,161 @@ function useWindowPointer() {
 }
 
 // ---------------------------------------------------------------------------
-// Placeholder medallion: lathed gold coin with a bevelled rim + chrome ring.
+// Brushed-gold texture: fine concentric rings, like the spun finish in the
+// motif video. Drives roughness and a whisper of bump so highlights streak.
 // ---------------------------------------------------------------------------
 
-function useCoinGeometry() {
+function useBrushedTexture() {
   return useMemo(() => {
-    // Half-profile (radius, height) from centre to edge; lathed around Y,
-    // then rotated so the face points at the camera (+Z).
-    const pts = [
-      [0, 0.1],
-      [0.18, 0.098],
-      [0.3, 0.09],
-      [0.32, 0.105], // inner raised ring
-      [0.35, 0.105],
-      [0.37, 0.088],
-      [0.62, 0.075],
-      [0.64, 0.095], // mid groove lip
-      [0.66, 0.095],
-      [0.68, 0.075],
-      [0.84, 0.07],
-      [0.88, 0.1], // rim bevel up
-      [0.93, 0.105],
-      [0.95, 0.06],
-      [0.95, 0],
-    ].map(([r, h]) => new THREE.Vector2(r, h));
-    // Mirror for the back face.
-    const back = pts
-      .slice(0, -1)
-      .reverse()
-      .map((v) => new THREE.Vector2(v.x, -v.y));
-    // Lathe profiles must run bottom -> top for outward-facing normals.
-    const geo = new THREE.LatheGeometry([...pts, ...back].reverse(), 128);
+    const size = 1024;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'rgb(128,128,128)';
+    ctx.fillRect(0, 0, size, size);
+    const c = size / 2;
+    for (let r = 1; r < size * 0.72; r += 0.9) {
+      const v = 128 + (Math.random() - 0.5) * 120;
+      ctx.strokeStyle = `rgba(${v},${v},${v},0.55)`;
+      ctx.lineWidth = 0.6 + Math.random();
+      ctx.beginPath();
+      ctx.arc(c, c, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.anisotropy = 8;
+    return tex;
+  }, []);
+}
+
+// ---------------------------------------------------------------------------
+// Geometry
+// ---------------------------------------------------------------------------
+
+const GLYPH_UV_SPAN = 1.3; // glyph spans roughly ±0.65 → map caps to 0..1
+
+// Caps get planar UVs centred on the medallion (so the brushed rings are
+// concentric with it); side walls get three's usual world-space UVs.
+const glyphUVs = {
+  generateTopUV(_, v, a, b, c) {
+    const uv = (i) =>
+      new THREE.Vector2(v[i * 3] / GLYPH_UV_SPAN + 0.5, v[i * 3 + 1] / GLYPH_UV_SPAN + 0.5);
+    return [uv(a), uv(b), uv(c)];
+  },
+  generateSideWallUV(_, v, a, b, c, d) {
+    const p = (i) => [v[i * 3], v[i * 3 + 1], v[i * 3 + 2]];
+    const [A, B, C, D] = [p(a), p(b), p(c), p(d)];
+    const alongX = Math.abs(A[1] - B[1]) < Math.abs(A[0] - B[0]);
+    const k = alongX ? 0 : 1;
+    return [A, B, C, D].map((q) => new THREE.Vector2(q[k], 1 - q[2]));
+  },
+};
+
+function useGlyphGeometry() {
+  return useMemo(() => {
+    const toPts = (pts) => pts.map(([x, y]) => new THREE.Vector2(x, y));
+    const shape = new THREE.Shape(toPts(glyph.outer));
+    shape.holes = glyph.holes.map((h) => new THREE.Path(toPts(h)));
+    const geo = new THREE.ExtrudeGeometry(shape, {
+      depth: GLYPH_DEPTH,
+      bevelEnabled: true,
+      bevelThickness: 0.008,
+      bevelSize: 0.006,
+      bevelSegments: 2,
+      curveSegments: 1,
+      UVGenerator: glyphUVs,
+    });
+    geo.translate(0, 0, GLYPH_Z);
+    return geo;
+  }, []);
+}
+
+// Thick chrome band with softly rounded edges, lathed from its cross-section.
+function useRingGeometry() {
+  return useMemo(() => {
+    const r0 = RING_INNER;
+    const r1 = 1;
+    const h = RING_DEPTH / 2;
+    const k = 0.035; // corner radius
+    const pts = [];
+    const corner = (cx, cy, a0) => {
+      for (let i = 0; i <= 6; i++) {
+        const a = a0 + (i / 6) * (Math.PI / 2);
+        pts.push(new THREE.Vector2(cx + Math.cos(a) * k, cy + Math.sin(a) * k));
+      }
+    };
+    // Counter-clockwise in (radius, height) so the lathe faces outward.
+    corner(r1 - k, -h + k, -Math.PI / 2);
+    corner(r1 - k, h - k, 0);
+    corner(r0 + k, h - k, Math.PI / 2);
+    corner(r0 + k, -h + k, Math.PI);
+    pts.push(pts[0].clone());
+    const geo = new THREE.LatheGeometry(pts, 160);
     geo.rotateX(Math.PI / 2);
     return geo;
   }, []);
 }
 
-function PlaceholderMedallion() {
-  const coin = useCoinGeometry();
+// ---------------------------------------------------------------------------
+// The medallion
+// ---------------------------------------------------------------------------
+
+function MedallionBody() {
+  const glyphGeo = useGlyphGeometry();
+  const ringGeo = useRingGeometry();
+  const brushed = useBrushedTexture();
+
   return (
     <group>
-      <mesh geometry={coin}>
-        <meshStandardMaterial {...GOLD} />
+      {/* ExtrudeGeometry groups: 0 = front/back caps, 1 = side walls. */}
+      <mesh geometry={glyphGeo}>
+        <meshStandardMaterial
+          attach="material-0"
+          color="#cdb43e"
+          metalness={0.95}
+          roughness={0.4}
+          roughnessMap={brushed}
+          bumpMap={brushed}
+          bumpScale={0.35}
+          envMapIntensity={1}
+        />
+        <meshStandardMaterial
+          attach="material-1"
+          color="#a19e96"
+          metalness={1}
+          roughness={0.32}
+          envMapIntensity={1}
+        />
       </mesh>
-      <mesh>
-        <torusGeometry args={[0.99, 0.075, 48, 160]} />
-        <meshStandardMaterial {...CHROME} />
+
+      {/* Black lacquer face, recessed inside the ring. */}
+      <mesh position={[0, 0, -0.03]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[RING_INNER + 0.005, RING_INNER + 0.005, 0.03, 128]} />
+        <meshPhysicalMaterial
+          color="#070707"
+          metalness={0.2}
+          roughness={0.35}
+          clearcoat={0.35}
+          clearcoatRoughness={0.2}
+        />
+      </mesh>
+
+      <mesh geometry={ringGeo}>
+        <meshStandardMaterial color="#f1f0ec" metalness={1} roughness={0.08} envMapIntensity={1.6} />
       </mesh>
     </group>
   );
 }
 
-// ---------------------------------------------------------------------------
-// GLB medallion (Meshy). Its baked textures are discarded; one material splits
-// gold/chrome by distance from the centre so it works on a single fused mesh.
-// ---------------------------------------------------------------------------
-
-function MeshyMedallion({ url, ringStart = 0.86 }) {
-  const { scene } = useGLTF(url); // draco decoder is on by default in drei
-  const model = useMemo(() => {
-    const root = scene.clone(true);
-    // Normalise: centre at origin, outer radius 1 in the XY plane.
-    const box = new THREE.Box3().setFromObject(root);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    const scale = 2 / Math.max(size.x, size.y);
-    root.position.copy(center).multiplyScalar(-scale);
-    root.scale.setScalar(scale);
-
-    const mat = new THREE.MeshStandardMaterial({ ...GOLD });
-    const chrome = new THREE.Color(CHROME.color);
-    mat.onBeforeCompile = (shader) => {
-      shader.uniforms.uChrome = { value: chrome };
-      shader.uniforms.uRingStart = { value: ringStart };
-      shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nvarying float vRadius;')
-        .replace(
-          '#include <begin_vertex>',
-          '#include <begin_vertex>\nvRadius = length((modelMatrix * vec4(position, 1.0)).xy - (modelMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xy);'
-        );
-      shader.fragmentShader = shader.fragmentShader
-        .replace(
-          '#include <common>',
-          '#include <common>\nvarying float vRadius;\nuniform vec3 uChrome;\nuniform float uRingStart;'
-        )
-        .replace(
-          '#include <roughnessmap_fragment>',
-          `#include <roughnessmap_fragment>
-          float ring = smoothstep(uRingStart - 0.015, uRingStart + 0.015, vRadius);
-          diffuseColor.rgb = mix(diffuseColor.rgb, uChrome, ring);
-          roughnessFactor = mix(roughnessFactor, ${CHROME.roughness.toFixed(2)}, ring);`
-        );
-    };
-
-    root.traverse((o) => {
-      if (o.isMesh) {
-        o.material = mat;
-        o.geometry.computeVertexNormals();
-      }
-    });
-    return root;
-  }, [scene, ringStart]);
-
-  return <primitive object={model} />;
-}
-
-// ---------------------------------------------------------------------------
-// Medallion rig: continuous spin (inner group) + cursor tilt (outer group).
-// ---------------------------------------------------------------------------
-
+// Continuous spin (inner group) + cursor tilt (outer group).
 function Medallion({ pointer }) {
   const tilt = useRef();
   const spin = useRef();
 
   useFrame((_, delta) => {
-    const dt = Math.min(delta, 0.1); // avoid jumps after a backgrounded tab
-    spin.current.rotation.y += dt * SPIN_SPEED * (prefersReducedMotion ? 0.4 : 1);
+    const dt = Math.min(delta, 0.1); // no jump after a backgrounded tab
+    if (Number.isFinite(FROZEN_ANGLE)) spin.current.rotation.y = THREE.MathUtils.degToRad(FROZEN_ANGLE);
+    else spin.current.rotation.y += dt * SPIN_SPEED * (prefersReducedMotion ? 0.4 : 1);
 
     const ease = 1 - Math.exp(-dt * 3); // frame-rate independent damping
     const tx = -pointer.current.y * MAX_TILT;
@@ -170,32 +212,27 @@ function Medallion({ pointer }) {
   return (
     <group ref={tilt}>
       <group ref={spin}>
-        {MEDALLION_URL ? <MeshyMedallion url={MEDALLION_URL} /> : <PlaceholderMedallion />}
+        <MedallionBody />
       </group>
     </group>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Camera entrance: push in from far back, then hold. Starts once the
-// medallion has mounted (it sits in the same Suspense boundary).
+// Camera entrance: push in from far back, then hold.
 // ---------------------------------------------------------------------------
 
-function CameraRig({ focus, onSettled }) {
+function CameraRig({ focus }) {
   const camera = useThree((s) => s.camera);
   const t = useRef(prefersReducedMotion ? ENTRANCE_SECONDS : 0);
-  const settled = useRef(false);
 
   useFrame((_, delta) => {
+    if (t.current >= ENTRANCE_SECONDS && camera.position.z === CAMERA_END_Z) return;
     t.current = Math.min(t.current + Math.min(delta, 0.05), ENTRANCE_SECONDS);
     const p = t.current / ENTRANCE_SECONDS;
     const e = 1 - Math.pow(1 - p, 4); // easeOutQuart: fast push, soft settle
     camera.position.z = THREE.MathUtils.lerp(CAMERA_START_Z, CAMERA_END_Z, e);
     focus.current = camera.position.z;
-    if (p >= 1 && !settled.current) {
-      settled.current = true;
-      onSettled?.();
-    }
   });
   return null;
 }
@@ -223,10 +260,10 @@ const dustVertex = /* glsl */ `
     vec3 p = position;
     float t = uTime;
     // Slow wander + gentle rise, wrapped so motes recycle.
-    p.x += sin(t * 0.13 + aSeed * 6.28) * 0.18 + sin(t * 0.07 + aSeed * 17.0) * 0.1;
-    p.z += cos(t * 0.11 + aSeed * 9.1) * 0.18;
-    p.y = mod(p.y + t * (0.025 + aSeed * 0.03) + 1.8, 3.6) - 1.8;
-    float edgeFade = smoothstep(1.8, 1.4, abs(p.y));
+    p.x += sin(t * 0.13 + aSeed * 6.28) * 0.22 + sin(t * 0.07 + aSeed * 17.0) * 0.12;
+    p.z += cos(t * 0.11 + aSeed * 9.1) * 0.22;
+    p.y = mod(p.y + t * (0.03 + aSeed * 0.04) + 2.2, 4.4) - 2.2;
+    float edgeFade = smoothstep(2.2, 1.7, abs(p.y));
 
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     float depth = -mv.z;
@@ -239,10 +276,10 @@ const dustVertex = /* glsl */ `
     // Catch the key light: brightest inside its cone, dim outside.
     vec3 toMote = normalize(p - uKeyPos);
     vec3 keyDir = normalize(-uKeyPos);
-    float cone = smoothstep(0.82, 0.98, dot(toMote, keyDir));
-    float lit = 0.18 + 0.82 * cone;
-    // Occasional glint as a mote "turns" toward the light.
-    float glint = pow(max(sin(t * (0.6 + aSeed) + aSeed * 40.0), 0.0), 24.0) * 1.5;
+    float cone = smoothstep(0.7, 0.95, dot(toMote, keyDir));
+    float lit = 0.22 + 0.78 * cone;
+    // Occasional glint as a mote turns toward the light.
+    float glint = pow(max(sin(t * (0.6 + aSeed) + aSeed * 40.0), 0.0), 24.0) * 1.6;
 
     // Spread energy over the larger disc so bokeh stays dim, not blown out.
     vAlpha = (lit + glint * cone) * edgeFade / (bokeh * bokeh * 0.35 + 0.65);
@@ -285,11 +322,11 @@ function GoldDust({ count, focus }) {
     for (let i = 0; i < count; i++) {
       // Volume around the medallion, deeper toward the camera so there are
       // plenty of near (blurred) motes as well as far ones.
-      positions[i * 3] = (Math.random() * 2 - 1) * 2.4;
-      positions[i * 3 + 1] = (Math.random() * 2 - 1) * 1.8;
-      positions[i * 3 + 2] = -2.5 + Math.random() * 5.2;
+      positions[i * 3] = (Math.random() * 2 - 1) * 2.8;
+      positions[i * 3 + 1] = (Math.random() * 2 - 1) * 2.2;
+      positions[i * 3 + 2] = -3 + Math.random() * 7;
       seeds[i] = Math.random();
-      sizes[i] = 0.9 + Math.pow(Math.random(), 3) * 2.2;
+      sizes[i] = 0.9 + Math.pow(Math.random(), 3) * 2.4;
       tints[i] = Math.random() < 0.22 ? 0.85 : 0;
     }
     const g = new THREE.BufferGeometry();
@@ -304,12 +341,12 @@ function GoldDust({ count, focus }) {
     () => ({
       uTime: { value: 0 },
       uFocus: { value: CAMERA_END_Z },
-      uAperture: { value: 0.55 },
+      uAperture: { value: 0.38 },
       uPixelRatio: { value: 1 },
       uScale: { value: 1 },
       uKeyPos: { value: KEY_LIGHT_POS.clone() },
-      uGold: { value: new THREE.Color('#f0c877') },
-      uChrome: { value: new THREE.Color('#d8dde2') },
+      uGold: { value: new THREE.Color('#ecd67a') },
+      uChrome: { value: new THREE.Color('#dde2e7') },
     }),
     []
   );
@@ -319,7 +356,7 @@ function GoldDust({ count, focus }) {
     u.uTime.value += Math.min(delta, 0.1) * (prefersReducedMotion ? 0.3 : 1);
     u.uFocus.value = focus.current;
     u.uPixelRatio.value = dpr;
-    u.uScale.value = size.height * 0.018; // point size tracks canvas size
+    u.uScale.value = size.height * 0.024; // point size tracks canvas size
   });
 
   return (
@@ -339,34 +376,96 @@ function GoldDust({ count, focus }) {
 }
 
 // ---------------------------------------------------------------------------
-// Lighting: one warm raking key, faint cool rim, near-zero ambient, and a
-// custom black studio environment whose only bright shapes echo the key —
-// so reflections agree with the lighting instead of fighting it.
+// Atmosphere: a faint warm haze behind the medallion, pooled toward the key
+// light, so the dark around it reads as air rather than a flat background.
 // ---------------------------------------------------------------------------
+
+const hazeFragment = /* glsl */ `
+  uniform vec3 uColor;
+  uniform float uTime;
+  varying vec2 vUv;
+  void main() {
+    vec2 p = vUv - 0.5;
+    float core = exp(-dot(p - vec2(-0.08, 0.06), p - vec2(-0.08, 0.06)) * 9.0);
+    float wide = exp(-dot(p, p) * 3.5) * 0.35;
+    float breathe = 0.92 + 0.08 * sin(uTime * 0.35);
+    vec3 c = uColor * (core + wide) * breathe;
+    gl_FragColor = vec4(c, max(c.r, max(c.g, c.b)));
+  }
+`;
+
+function Haze() {
+  const mat = useRef();
+  const uniforms = useMemo(
+    () => ({ uColor: { value: new THREE.Color('#3b3320') }, uTime: { value: 0 } }),
+    []
+  );
+  useFrame((_, delta) => {
+    mat.current.uniforms.uTime.value += Math.min(delta, 0.1);
+  });
+  return (
+    <mesh position={[0, 0, -2.6]}>
+      <planeGeometry args={[9, 9]} />
+      <shaderMaterial
+        ref={mat}
+        vertexShader={'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }'}
+        fragmentShader={hazeFragment}
+        uniforms={uniforms}
+        transparent
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+        premultipliedAlpha
+      />
+    </mesh>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Lighting: one warm raking key, faint cool rim, near-zero ambient, and a
+// black studio environment whose bright shapes echo the key — so reflections
+// agree with the lighting instead of fighting it.
+// ---------------------------------------------------------------------------
+
+const SOFTBOX_ANGLES = Array.from({ length: 8 }, (_, i) => (i / 8) * Math.PI * 2);
 
 function Lighting() {
   return (
     <>
-      <ambientLight intensity={0.04} />
+      <ambientLight intensity={0.05} />
       <spotLight
         position={KEY_LIGHT_POS.toArray()}
         angle={0.55}
         penumbra={1}
         decay={0}
         intensity={5.5}
-        color="#ffcf94"
+        color="#ffdcaa"
       />
-      <directionalLight position={[3, -1.2, -2]} intensity={0.35} color="#9fb2c6" />
+      <directionalLight position={[3, -1.2, -2]} intensity={0.4} color="#9fb2c6" />
       <Environment resolution={256} frames={1} environmentIntensity={0.9}>
         <color attach="background" args={['#000000']} />
         {/* Warm strip on the key side — the big glint that sweeps across. */}
-        <Lightformer form="rect" intensity={6} color="#ffd29a" position={[-4, 2, 2]} scale={[1.2, 7, 1]} target={[0, 0, 0]} />
+        <Lightformer form="rect" intensity={6} color="#ffe4bd" position={[-4, 2, 2]} scale={[1.2, 7, 1]} target={[0, 0, 0]} />
         {/* Soft overhead fill so the face never goes fully dead. */}
-        <Lightformer form="rect" intensity={0.7} color="#fff1dc" position={[0, 5, 1]} scale={[6, 2, 1]} target={[0, 0, 0]} />
+        <Lightformer form="rect" intensity={0.8} color="#fff1dc" position={[0, 5, 1]} scale={[6, 2, 1]} target={[0, 0, 0]} />
         {/* Cool kickers — a mirror needs sharp shapes to reflect, or chrome reads black. */}
         <Lightformer form="rect" intensity={2.2} color="#e4ecf5" position={[4, -1, 1]} scale={[0.5, 6, 1]} target={[0, 0, 0]} />
         <Lightformer form="rect" intensity={1.2} color="#f5efe6" position={[0, -3, 3]} scale={[8, 0.35, 1]} target={[0, 0, 0]} />
         <Lightformer form="ring" intensity={1.5} color="#fff4e2" position={[0, 0, 6]} scale={3} target={[0, 0, 0]} />
+        {/* An even ring of dim softboxes around the spin axis. Polished gold
+            only shows its colour when it has something to reflect — any gap
+            here turns it bronze-brown at the angles that face the gap. */}
+        {SOFTBOX_ANGLES.map((a) => (
+          <Lightformer
+            key={a}
+            form="rect"
+            intensity={0.55}
+            color="#f6f5f2"
+            position={[Math.sin(a) * 7, 0, Math.cos(a) * 7]}
+            scale={[5.8, 8, 1]}
+            target={[0, 0, 0]}
+          />
+        ))}
+        <Lightformer form="rect" intensity={0.35} color="#ffffff" position={[0, -6, 0]} scale={[8, 8, 1]} target={[0, 0, 0]} />
       </Environment>
     </>
   );
@@ -380,20 +479,21 @@ export default function MedallionScene() {
   const [dpr, setDpr] = useState(1.75);
   const [ready, setReady] = useState(false);
   const dustCount = useMemo(
-    () => (typeof window !== 'undefined' && window.innerWidth < 700 ? 180 : 320),
+    () => (typeof window !== 'undefined' && window.innerWidth < 700 ? 200 : 360),
     []
   );
 
   return (
-    <div className="mark-placeholder" style={{ opacity: ready ? 1 : 0, transition: 'opacity 0.8s ease' }}>
+    <div className="medallion-stage" style={{ opacity: ready ? 1 : 0 }}>
       <Canvas
-        camera={{ position: [0, 0, CAMERA_START_Z], fov: 35, near: 0.1, far: 40 }}
+        camera={{ position: [0, 0, CAMERA_START_Z], fov: 30, near: 0.1, far: 60 }}
         gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
         dpr={dpr}
         onCreated={() => setReady(true)}
       >
         <PerformanceMonitor onDecline={() => setDpr(1)} onIncline={() => setDpr(1.75)} />
         <Lighting />
+        <Haze />
         <Suspense fallback={null}>
           <Medallion pointer={pointer} />
           <CameraRig focus={focus} />
@@ -403,5 +503,3 @@ export default function MedallionScene() {
     </div>
   );
 }
-
-if (MEDALLION_URL) useGLTF.preload(MEDALLION_URL);

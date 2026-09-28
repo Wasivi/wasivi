@@ -44,3 +44,18 @@
 .social-row a { color: var(--chrome); text-decoration: none; display: flex; }
 .social-row svg { width: 18px; height: 18px; }
 .tagline { margin-top: 20px; color: var(--lightgray); font-size: 18px; letter-spacing: 0.05em; }
+
+/* 3D medallion: the canvas overflows the mark box so dust and haze can drift
+   past the circle and fade into the page instead of being clipped by it. */
+.mark-3d { overflow: visible; border-radius: 0; filter: none; }
+.mark-3d::after { display: none; }
+.medallion-stage {
+  position: absolute;
+  inset: -32%;
+  pointer-events: none;
+  transition: opacity 1s ease;
+  -webkit-mask-image: radial-gradient(closest-side, #000 60%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 60%, transparent 100%);
+}
+.medallion-stage canvas { width: 100% !important; height: 100% !important; }
+.hero > :not(.mark-placeholder) { position: relative; z-index: 1; }
