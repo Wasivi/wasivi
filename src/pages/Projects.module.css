@@ -1,0 +1,60 @@
+.heroLine { max-width: 760px; margin: 8px auto 0; padding: 0 24px; text-align: center; }
+.heroLine h1 { font-size: 30px; font-weight: 400; color: #e6e8e9; margin: 0 0 12px; }
+.heroLine p { font-size: 17px; color: var(--lightgray); margin: 0; }
+
+.list { max-width: 780px; margin: 56px auto 100px; padding: 0 24px; }
+.item {
+  border-bottom: 1px solid #24211b;
+  padding: 26px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  cursor: pointer;
+}
+.item:first-child { border-top: 1px solid #24211b; }
+.item:hover .name { color: var(--gold-bright); }
+.body { flex: 1; }
+.name {
+  font-size: 21px; font-weight: 400; letter-spacing: 0.02em;
+  margin: 0 0 4px; transition: color .2s;
+}
+.date { font-size: 12px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 10px; }
+.blurb { font-size: 16px; color: var(--lightgray); margin: 0; }
+.plus {
+  font-size: 26px; color: var(--gold-bright); line-height: 1;
+  padding-top: 4px; flex-shrink: 0;
+}
+
+.detail {
+  display: none;
+  position: fixed; inset: 0;
+  background: var(--black);
+  z-index: 60;
+  overflow-y: auto;
+}
+.detailOpen { display: block; }
+.detailInner { max-width: 1000px; margin: 0 auto; padding: 70px 32px 90px; }
+.detailInner video, .videoslot {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(160deg, #17160f 0%, #0d0d0b 100%);
+  border: 1px solid #24211b;
+  display: block;
+  object-fit: cover;
+  margin-bottom: 36px;
+}
+.videoslot {
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gold-bright); font-size: 13px; letter-spacing: 0.08em;
+}
+.detailInner h2 { font-size: 30px; font-weight: 400; margin: 0 0 6px; }
+.detailInner .date { font-size: 13px; margin-bottom: 26px; }
+.detailInner p { font-size: 16px; color: var(--lightgray); margin: 0 0 16px; max-width: 70ch; }
+.meta { font-size: 14px; color: var(--muted); margin-top: 26px; line-height: 1.7; }
+.close {
+  position: fixed; top: 24px; right: 32px; z-index: 70;
+  background: none; border: none; color: var(--muted);
+  font-size: 34px; cursor: pointer; font-family: inherit; line-height: 1;
+}
+.close:hover { color: var(--paper); }
+@media (max-width: 640px) { .detailInner { padding: 60px 20px 70px; } }

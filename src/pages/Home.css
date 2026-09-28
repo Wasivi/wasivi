@@ -1,0 +1,44 @@
+.hero {
+  min-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 24px 60px;
+  border-bottom: 1px solid #2a2a26;
+}
+.mark-placeholder {
+  position: relative;
+  width: 57.375vmin;
+  height: 57.375vmin;
+  max-width: 742px;
+  max-height: 742px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mark-placeholder canvas { width: 100% !important; height: 100% !important; }
+.mark-placeholder::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, transparent 62%, var(--black) 96%);
+}
+.wordmark {
+  margin-top: 32px;
+  font-size: 84px;
+  letter-spacing: 0.35em;
+  text-indent: 0.35em;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--silver);
+}
+.social-row { margin-top: 28px; display: flex; gap: 24px; align-items: center; }
+.social-row a { color: var(--chrome); text-decoration: none; display: flex; }
+.social-row svg { width: 18px; height: 18px; }
+.tagline { margin-top: 20px; color: var(--lightgray); font-size: 18px; letter-spacing: 0.05em; }

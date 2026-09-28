@@ -10,19 +10,32 @@ See [wasivi-prd.md](wasivi-prd.md) for the full product requirements document, i
 
 ## Site structure
 
-| Page | File |
-|---|---|
-| Home | [index.html](index.html) |
-| About | [about.html](about.html) |
-| How We Work | [how-we-work.html](how-we-work.html) |
-| FAQ | [faq.html](faq.html) |
-| Projects | [projects.html](projects.html) |
+React app (Vite + React Router). Each route is a page component under [src/pages/](src/pages):
 
-Static assets (video) live in [videos/](videos).
+| Page | Route | File |
+|---|---|---|
+| Home | `/` | [src/pages/Home.jsx](src/pages/Home.jsx) |
+| About | `/about` | [src/pages/About.jsx](src/pages/About.jsx) |
+| How We Work | `/how-we-work` | [src/pages/HowWeWork.jsx](src/pages/HowWeWork.jsx) |
+| FAQ | `/faq` | [src/pages/Faq.jsx](src/pages/Faq.jsx) |
+| Projects | `/projects` | [src/pages/Projects.jsx](src/pages/Projects.jsx) |
+
+Shared nav lives in [src/components/Nav.jsx](src/components/Nav.jsx); shared theme variables in [src/theme.css](src/theme.css). The home page's hero mark is a React Three Fiber scene ([src/components/HeroScene.jsx](src/components/HeroScene.jsx)) — a 3D orb textured with the hero video, with mouse-driven rotation, fog, and particles.
+
+Static assets (video, images) live in [public/](public) and are served at the same paths (`/videos/...`, `/images/...`).
 
 ## Stack & deployment
 
-Static HTML site. Per the roadmap, it's deployed via GitHub + Netlify, connected to the wasivi.com domain.
+React + Vite, deployed via GitHub + Netlify (see [netlify.toml](netlify.toml)), connected to the wasivi.com domain. Build command `npm run build`, publish directory `dist`.
+
+### Local development
+
+```
+npm install
+npm run dev       # dev server
+npm run build     # production build to dist/
+npm run preview   # preview the production build
+```
 
 ## Status
 

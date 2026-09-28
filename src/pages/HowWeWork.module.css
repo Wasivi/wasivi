@@ -1,0 +1,6 @@
+.wrap { max-width: 720px; margin: 20px auto 100px; padding: 0 24px; }
+.title { font-size: 30px; font-weight: 400; color: #e6e8e9; text-align: center; margin: 0 0 48px; }
+.step { padding: 28px 0; border-bottom: 1px solid #1c1c19; }
+.step:last-child { border-bottom: none; }
+.step h2 { font-size: 19px; font-weight: 400; color: var(--gold-bright); margin: 0 0 10px; }
+.step p { font-size: 16px; color: var(--lightgray); margin: 0; }
