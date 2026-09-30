@@ -14,7 +14,7 @@ const SPIN_SPEED = 0.3; // rad/s — one turn every ~21s
 const MAX_TILT = 0.22; // rad
 const KEY_LIGHT_POS = new THREE.Vector3(-3.6, 2.4, 2.6);
 
-const GLYPH_DEPTH = 1.2;
+const GLYPH_DEPTH = 0.7;
 const GLYPH_Z = -GLYPH_DEPTH / 2; // centred: the glyph juts out of both sides of the ring
 const RING_INNER = 0.87;
 const RING_DEPTH = 0.34;
@@ -153,7 +153,7 @@ function MedallionBody() {
   return (
     <group>
       {/* ExtrudeGeometry groups: 0 = front/back caps, 1 = side walls. */}
-      <mesh geometry={glyphGeo}>
+      <mesh geometry={glyphGeo} castShadow receiveShadow>
         <meshStandardMaterial
           attach="material-0"
           color="#cdb43e"
@@ -166,9 +166,9 @@ function MedallionBody() {
         />
         <meshStandardMaterial
           attach="material-1"
-          color="#a19e96"
+          color="#86837d"
           metalness={1}
-          roughness={0.32}
+          roughness={0.38}
           envMapIntensity={1}
         />
       </mesh>
@@ -180,7 +180,7 @@ function MedallionBody() {
         <meshBasicMaterial color="#000000" />
       </mesh>
 
-      <mesh geometry={ringGeo}>
+      <mesh geometry={ringGeo} castShadow receiveShadow>
         <meshStandardMaterial color="#f1f0ec" metalness={1} roughness={0.08} envMapIntensity={1.6} />
       </mesh>
     </group>
@@ -398,11 +398,18 @@ function Lighting() {
         angle={0.55}
         penumbra={1}
         decay={0}
-        intensity={5.5}
+        intensity={9}
         color="#ffdcaa"
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-bias={-0.0004}
+        shadow-normalBias={0.02}
+        shadow-camera-near={1}
+        shadow-camera-far={12}
       />
       <directionalLight position={[3, -1.2, -2]} intensity={0.4} color="#9fb2c6" />
-      <Environment resolution={256} frames={1} environmentIntensity={0.9}>
+      <Environment resolution={256} frames={1} environmentIntensity={0.6}>
         <color attach="background" args={['#000000']} />
         {/* Warm strip on the key side — the big glint that sweeps across. */}
         <Lightformer form="rect" intensity={6} color="#ffe4bd" position={[-4, 2, 2]} scale={[1.2, 7, 1]} target={[0, 0, 0]} />
@@ -450,6 +457,7 @@ export default function MedallionScene() {
         camera={{ position: [0, 0, CAMERA_START_Z], fov: 30, near: 0.1, far: 60 }}
         gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
         dpr={dpr}
+        shadows="soft"
         onCreated={() => setReady(true)}
       >
         <PerformanceMonitor onDecline={() => setDpr(1)} onIncline={() => setDpr(1.75)} />
