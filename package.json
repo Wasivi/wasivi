@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check": "vite build && playwright test"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.0",
@@ -17,6 +18,7 @@
     "three": "^0.169.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@vitejs/plugin-react": "^4.3.2",
     "vite": "^5.4.9"
   }

@@ -14,8 +14,8 @@ const SPIN_SPEED = 0.3; // rad/s — one turn every ~21s
 const MAX_TILT = 0.22; // rad
 const KEY_LIGHT_POS = new THREE.Vector3(-3.6, 2.4, 2.6);
 
-const GLYPH_DEPTH = 0.78;
-const GLYPH_Z = -0.14; // back face; the glyph juts far out in front of the ring
+const GLYPH_DEPTH = 1.2;
+const GLYPH_Z = -GLYPH_DEPTH / 2; // centred: the glyph juts out of both sides of the ring
 const RING_INNER = 0.87;
 const RING_DEPTH = 0.34;
 
@@ -256,11 +256,14 @@ const dustVertex = /* glsl */ `
   void main() {
     vec3 p = position;
     float t = uTime;
-    // Falls slowly like snow, swaying side to side; wraps top-to-bottom.
+    // Drifts down slowly like snow, swaying side to side.
     p.x += sin(t * 0.35 + aSeed * 6.28) * 0.18 + sin(t * 0.13 + aSeed * 17.0) * 0.1;
-    p.z += cos(t * 0.27 + aSeed * 9.1) * 0.15;
-    p.y = mod(p.y - t * (0.06 + aSeed * 0.07) + 2.2, 4.4) - 2.2;
-    float edgeFade = smoothstep(2.2, 1.8, abs(p.y));
+    p.y = mod(p.y - t * (0.03 + aSeed * 0.04) + 2.2, 4.4) - 2.2;
+    // Streams from far behind the medallion, through it, and out past the
+    // viewer's side of it — so flakes grow as they come toward you.
+    p.z = mod(p.z + 3.0 + t * (0.3 + aSeed * 0.35), 7.0) - 3.0;
+    float edgeFade = smoothstep(2.2, 1.8, abs(p.y))
+      * smoothstep(-3.0, -2.2, p.z) * smoothstep(4.0, 3.2, p.z);
 
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     float depth = -mv.z;
@@ -278,7 +281,8 @@ const dustVertex = /* glsl */ `
     // to read as brown — dim gold on black looks like chocolate.
     vec3 toMote = normalize(p - uKeyPos);
     float cone = smoothstep(0.7, 0.95, dot(toMote, normalize(-uKeyPos)));
-    vAlpha = (0.7 + 0.5 * cone) * edgeFade / (1.0 + vBlur * 2.0);
+    // Near flakes stay bright as they soften — dimmed gold reads as brown.
+    vAlpha = (0.8 + 0.5 * cone) * edgeFade / (1.0 + vBlur * 0.4);
     vTint = aTint;
   }
 `;
@@ -329,7 +333,7 @@ function GoldDust({ count, focus }) {
       positions[i * 3 + 2] = -3 + Math.random() * 7;
       seeds[i] = Math.random();
       sizes[i] = 1.4 + Math.pow(Math.random(), 2) * 2.2;
-      tints[i] = Math.random() < 0.22 ? 0.85 : 0;
+      tints[i] = Math.random() < 0.5 ? 1 : 0; // half gold, half silver
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(positions, 3));
