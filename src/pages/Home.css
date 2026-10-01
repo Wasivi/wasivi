@@ -47,15 +47,30 @@
 
 /* 3D medallion: the canvas overflows the mark box so dust and haze can drift
    past the circle and fade into the page instead of being clipped by it. */
-.mark-3d { overflow: visible; border-radius: 0; filter: none; }
+/* The mark box stays as the layout spacer; the stage inside it is positioned
+   against the whole hero so the medallion can travel across it. */
+.mark-3d { position: static; overflow: visible; border-radius: 0; filter: none; }
+.hero { position: relative; overflow: hidden; }
 .mark-3d::after { display: none; }
 .medallion-stage {
   position: absolute;
-  inset: -32%;
+  inset: 0;
   pointer-events: none;
   transition: opacity 1s ease;
-  -webkit-mask-image: radial-gradient(closest-side, #000 60%, transparent 100%);
-  mask-image: radial-gradient(closest-side, #000 60%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
 }
 .medallion-stage canvas { width: 100% !important; height: 100% !important; }
 .hero > :not(.mark-placeholder) { position: relative; z-index: 1; }
+
+/* Gold/silver flakes that fall and settle on the W and S of the wordmark. */
+.wordmark { position: relative; }
+.wordmark-dust {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: calc(100% + 160px);
+  pointer-events: none;
+}

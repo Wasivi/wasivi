@@ -12,7 +12,11 @@ const CAMERA_END_Z = 6.8;
 const ENTRANCE_SECONDS = 3.4;
 const SPIN_SPEED = 0.3; // rad/s — one turn every ~21s
 const MAX_TILT = 0.22; // rad
-const KEY_LIGHT_POS = new THREE.Vector3(-3.6, 2.4, 2.6);
+const KEY_LIGHT_POS = new THREE.Vector3(-3.6, 2.4, 2.6); // relative to the medallion
+
+// Where the medallion is right now; the key light follows it so it stays lit
+// wherever it travels.
+const medallionPos = new THREE.Vector3();
 
 const GLYPH_DEPTH = 0.7;
 const GLYPH_Z = -GLYPH_DEPTH / 2; // centred: the glyph juts out of both sides of the ring
@@ -23,6 +27,17 @@ const RING_DEPTH = 0.34;
 const FROZEN_ANGLE = import.meta.env.DEV
   ? Number(new URLSearchParams(window.location.search).get('angle') ?? NaN)
   : NaN;
+
+// Finishes for the silver ring; matte is the default. Dev only: /?ring=chrome
+// or /?ring=satin to compare.
+const RING_FINISHES = {
+  chrome: { color: '#f1f0ec', metalness: 1, roughness: 0.08, envMapIntensity: 1.6 },
+  satin: { color: '#d9d9d6', metalness: 1, roughness: 0.28, envMapIntensity: 1.3 },
+  matte: { color: '#c3c6ca', metalness: 1, roughness: 0.62, envMapIntensity: 1.25, textured: true },
+};
+const RING_FINISH =
+  RING_FINISHES[import.meta.env.DEV && new URLSearchParams(window.location.search).get('ring')] ??
+  RING_FINISHES.matte;
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -68,6 +83,40 @@ function useBrushedTexture() {
       ctx.stroke();
     }
     const tex = new THREE.CanvasTexture(canvas);
+    tex.anisotropy = 8;
+    return tex;
+  }, []);
+}
+
+// Matte-silver grain: fine circumferential brushing plus speckle, like
+// bead-blasted or satin-brushed steel. Lathe UVs run u around the ring, so
+// horizontal streaks here become brushing around the band.
+function useGrainTexture() {
+  return useMemo(() => {
+    const w = 2048;
+    const h = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'rgb(150,150,150)';
+    ctx.fillRect(0, 0, w, h);
+    for (let i = 0; i < 2600; i++) {
+      const v = 150 + (Math.random() - 0.5) * 140;
+      ctx.fillStyle = `rgba(${v},${v},${v},0.5)`;
+      ctx.fillRect(Math.random() * w, Math.random() * h, 40 + Math.random() * 400, 0.6 + Math.random());
+    }
+    const img = ctx.getImageData(0, 0, w, h);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const n = (Math.random() - 0.5) * 50;
+      img.data[i] += n;
+      img.data[i + 1] += n;
+      img.data[i + 2] += n;
+    }
+    ctx.putImageData(img, 0, 0);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(4, 1);
     tex.anisotropy = 8;
     return tex;
   }, []);
@@ -145,10 +194,29 @@ function useRingGeometry() {
 // The medallion
 // ---------------------------------------------------------------------------
 
+// Side walls darken the deeper they sit — toward the black face at z = 0 —
+// like a recessed casting. Cheap stand-in for ambient occlusion; the key
+// light's shadow map does the rest. Walls rely mostly on that key light (low
+// envMapIntensity) so the faces turned away from it fall into shadow.
+function addContactShading(shader) {
+  shader.vertexShader = shader.vertexShader
+    .replace('#include <common>', '#include <common>\nvarying float vDepth;')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvDepth = abs(position.z);');
+  shader.fragmentShader = shader.fragmentShader
+    .replace('#include <common>', '#include <common>\nvarying float vDepth;')
+    .replace(
+      '#include <opaque_fragment>',
+      `outgoingLight *= mix(0.18, 1.0, smoothstep(0.02, ${(GLYPH_DEPTH / 2).toFixed(3)}, vDepth));
+      #include <opaque_fragment>`
+    );
+}
+
 function MedallionBody() {
   const glyphGeo = useGlyphGeometry();
   const ringGeo = useRingGeometry();
   const brushed = useBrushedTexture();
+  const grain = useGrainTexture();
+  const { textured, ...ringFinish } = RING_FINISH;
 
   return (
     <group>
@@ -162,14 +230,15 @@ function MedallionBody() {
           roughnessMap={brushed}
           bumpMap={brushed}
           bumpScale={0.35}
-          envMapIntensity={1}
+          envMapIntensity={1.6}
         />
         <meshStandardMaterial
           attach="material-1"
-          color="#86837d"
+          color="#8f8c86"
           metalness={1}
-          roughness={0.38}
-          envMapIntensity={1}
+          roughness={0.36}
+          envMapIntensity={0.4}
+          onBeforeCompile={addContactShading}
         />
       </mesh>
 
@@ -181,21 +250,62 @@ function MedallionBody() {
       </mesh>
 
       <mesh geometry={ringGeo} castShadow receiveShadow>
-        <meshStandardMaterial color="#f1f0ec" metalness={1} roughness={0.08} envMapIntensity={1.6} />
+        <meshStandardMaterial
+          {...ringFinish}
+          roughnessMap={textured ? grain : null}
+          bumpMap={textured ? grain : null}
+          bumpScale={0.6}
+        />
       </mesh>
     </group>
   );
 }
 
-// Continuous spin (inner group) + cursor tilt (outer group).
-function Medallion({ pointer }) {
+// Nested motion, outermost first: a slow drift in depth (back, then toward
+// the viewer), cursor tilt, a slow rock back and forward, and the spin.
+function Medallion({ pointer, layout }) {
+  const drift = useRef();
   const tilt = useRef();
+  const rock = useRef();
   const spin = useRef();
+  const t = useRef(0);
+  const camera = useThree((st) => st.camera);
+  const aspect = useThree((st) => st.size.width / st.size.height);
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.1); // no jump after a backgrounded tab
-    if (Number.isFinite(FROZEN_ANGLE)) spin.current.rotation.y = THREE.MathUtils.degToRad(FROZEN_ANGLE);
+    const frozen = Number.isFinite(FROZEN_ANGLE);
+    if (!frozen && !prefersReducedMotion) t.current += dt;
+    const time = t.current;
+
+    // Map the mark box (from the page layout) into world units at z = 0.
+    const halfH = CAMERA_END_Z * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    const halfW = halfH * aspect;
+    const L = layout.current;
+    const homeX = L.fx * halfW;
+    const homeY = L.fy * halfH;
+    const scale = L.radius * 2 * halfH;
+    drift.current.scale.setScalar(scale);
+
+    if (frozen) spin.current.rotation.y = THREE.MathUtils.degToRad(FROZEN_ANGLE);
     else spin.current.rotation.y += dt * SPIN_SPEED * (prefersReducedMotion ? 0.4 : 1);
+
+    // Rock: tips back and forward as it turns, on its own slower rhythm.
+    rock.current.rotation.x = Math.sin(time * 0.37) * 0.26;
+    rock.current.rotation.z = Math.sin(time * 0.23 + 1.1) * 0.06;
+
+    // Travel: sweeps out to the far left and far right of the hero, recedes
+    // and comes forward, floats a little — turning and rocking all the while,
+    // so you see it change shape in 3D. Starts (time 0) at its home spot.
+    // Mostly recedes; comes only a little forward so it never clips the top.
+    const depth = (-0.5 + Math.sin(time * 0.19) * 0.9) * scale;
+    const reachX = Math.max(0, halfW * ((CAMERA_END_Z - 0.4 * scale) / CAMERA_END_Z) - scale * 1.3);
+    drift.current.position.set(
+      homeX + Math.sin(time * 0.12) * reachX,
+      homeY - scale * 0.12 + Math.sin(time * 0.27) * scale * 0.1,
+      depth
+    );
+    medallionPos.copy(drift.current.position);
 
     const ease = 1 - Math.exp(-dt * 3); // frame-rate independent damping
     const tx = -pointer.current.y * MAX_TILT;
@@ -205,9 +315,13 @@ function Medallion({ pointer }) {
   });
 
   return (
-    <group ref={tilt}>
-      <group ref={spin}>
-        <MedallionBody />
+    <group ref={drift}>
+      <group ref={tilt}>
+        <group ref={rock}>
+          <group ref={spin}>
+            <MedallionBody />
+          </group>
+        </group>
       </group>
     </group>
   );
@@ -328,8 +442,8 @@ function GoldDust({ count, focus }) {
     for (let i = 0; i < count; i++) {
       // Volume around the medallion, deeper toward the camera so there are
       // plenty of near (blurred) motes as well as far ones.
-      positions[i * 3] = (Math.random() * 2 - 1) * 2.8;
-      positions[i * 3 + 1] = (Math.random() * 2 - 1) * 2.2;
+      positions[i * 3] = (Math.random() * 2 - 1) * 5.5;
+      positions[i * 3 + 1] = (Math.random() * 2 - 1) * 2.4;
       positions[i * 3 + 2] = -3 + Math.random() * 7;
       seeds[i] = Math.random();
       sizes[i] = 1.4 + Math.pow(Math.random(), 2) * 2.2;
@@ -361,6 +475,7 @@ function GoldDust({ count, focus }) {
     const u = material.current.uniforms;
     u.uTime.value += Math.min(delta, 0.1) * (prefersReducedMotion ? 0.3 : 1);
     u.uFocus.value = focus.current;
+    u.uKeyPos.value.copy(medallionPos).add(KEY_LIGHT_POS);
     u.uPixelRatio.value = dpr;
     u.uScale.value = size.height * 0.03; // point size tracks canvas size
   });
@@ -390,10 +505,20 @@ function GoldDust({ count, focus }) {
 const SOFTBOX_ANGLES = Array.from({ length: 8 }, (_, i) => (i / 8) * Math.PI * 2);
 
 function Lighting() {
+  const key = useRef();
+  const target = useMemo(() => new THREE.Object3D(), []);
+  useFrame(() => {
+    key.current.position.copy(medallionPos).add(KEY_LIGHT_POS);
+    target.position.copy(medallionPos);
+    target.updateMatrixWorld();
+  });
   return (
     <>
+      <primitive object={target} />
       <ambientLight intensity={0.05} />
       <spotLight
+        ref={key}
+        target={target}
         position={KEY_LIGHT_POS.toArray()}
         angle={0.55}
         penumbra={1}
@@ -446,13 +571,32 @@ export default function MedallionScene() {
   const focus = useRef(CAMERA_END_Z);
   const [dpr, setDpr] = useState(1.75);
   const [ready, setReady] = useState(false);
+  const stage = useRef();
+  // Mark box centre (as -1..1 of the stage) and radius (fraction of stage
+  // height): the medallion's home spot and size.
+  const layout = useRef({ fx: 0, fy: 0, radius: 0.3 });
+
+  useEffect(() => {
+    const measure = () => {
+      const st = stage.current.getBoundingClientRect();
+      const mark = stage.current.parentElement.getBoundingClientRect();
+      layout.current = {
+        fx: ((mark.left + mark.width / 2 - st.left) / st.width) * 2 - 1,
+        fy: -(((mark.top + mark.height / 2 - st.top) / st.height) * 2 - 1),
+        radius: (mark.height * 0.42) / st.height,
+      };
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
   const dustCount = useMemo(
-    () => (typeof window !== 'undefined' && window.innerWidth < 700 ? 200 : 360),
+    () => (typeof window !== 'undefined' && window.innerWidth < 700 ? 260 : 520),
     []
   );
 
   return (
-    <div className="medallion-stage" style={{ opacity: ready ? 1 : 0 }}>
+    <div className="medallion-stage" ref={stage} style={{ opacity: ready ? 1 : 0 }}>
       <Canvas
         camera={{ position: [0, 0, CAMERA_START_Z], fov: 30, near: 0.1, far: 60 }}
         gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
@@ -463,7 +607,7 @@ export default function MedallionScene() {
         <PerformanceMonitor onDecline={() => setDpr(1)} onIncline={() => setDpr(1.75)} />
         <Lighting />
         <Suspense fallback={null}>
-          <Medallion pointer={pointer} />
+          <Medallion pointer={pointer} layout={layout} />
           <CameraRig focus={focus} />
         </Suspense>
         <GoldDust count={dustCount} focus={focus} />
