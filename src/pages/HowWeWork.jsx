@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import Nav from '../components/Nav';
 import styles from './HowWeWork.module.css';
 
-const HowWeWorkScene = lazy(() => import('../components/HowWeWorkScene'));
+const ThreadForm = lazy(() => import('../components/ThreadForm'));
 
 // Step 1 uses the exact copy from the approved mockup. Steps 2-5 are still on
 // the original site copy — swap `label`/`body` once the real short-form copy
@@ -76,8 +76,8 @@ export default function HowWeWork() {
           </div>
 
           <div className={styles.visual}>
-            <Suspense fallback={<div className="how-we-work-scene" />}>
-              <HowWeWorkScene activeIndex={activeIndex} />
+            <Suspense fallback={null}>
+              <ThreadForm activeIndex={activeIndex} />
             </Suspense>
           </div>
         </div>
