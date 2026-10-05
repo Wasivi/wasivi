@@ -57,9 +57,9 @@ const clamp = (x) => Math.max(0, Math.min(1, x));
 
 export default function HowWeWork() {
   const journey = useRef();
-  // 0..1 along the journey; the artwork reads it every frame. Scrolling drives
-  // it, stopping holds it, scrolling back reverses it.
-  const fill = useRef(0);
+  // Position in slides (0–11); the artwork reads it every frame. Scrolling
+  // drives it, stopping holds it, scrolling back reverses it.
+  const progress = useRef(0);
   const [scene, setScene] = useState(0);
 
   useEffect(() => { document.title = 'WASIVI — How We Work'; }, []);
@@ -71,8 +71,7 @@ export default function HowWeWork() {
       const el = journey.current;
       const top = el.getBoundingClientRect().top + window.scrollY;
       const q = clamp((window.scrollY - top) / (el.offsetHeight - window.innerHeight));
-      // Milestone: one channel fills across the whole journey.
-      fill.current = q;
+      progress.current = q * N;
       setScene(Math.min(N - 1, Math.floor(q * N)));
     };
     const onScroll = () => {
@@ -111,7 +110,7 @@ export default function HowWeWork() {
 
         <div className={styles.artwork}>
           <Suspense fallback={null}>
-            <ChannelArt fill={fill} />
+            <ChannelArt progress={progress} />
           </Suspense>
         </div>
 
