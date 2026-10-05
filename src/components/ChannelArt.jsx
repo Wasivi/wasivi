@@ -70,8 +70,10 @@ const fragmentShader = /* glsl */ `
   // Map the artwork's brightness onto a metal: dark stays dark (tinted), mid
   // tones take the colour, the brightest threads catch a near-white glint.
   vec3 metalize(float lum, vec3 m) {
-    vec3 c = m * (0.12 + 2.1 * lum);
-    return c + vec3(1.0, 0.96, 0.88) * pow(lum, 2.4) * 0.9;
+    // A raised floor so the colour reads clearly even in the shadows,
+    // while the threads still stand out brighter.
+    vec3 c = m * (0.42 + 1.7 * lum);
+    return c + vec3(1.0, 0.96, 0.88) * pow(lum, 2.4) * 0.8;
   }
 
   void main() {
@@ -86,7 +88,7 @@ const fragmentShader = /* glsl */ `
     float along = ch.r;
     // G is distance from the channel's edge: the fill stops a little short,
     // so the artwork's own lines show through between neighbouring fills.
-    float inside = smoothstep(0.3, 0.75, ch.g);
+    float inside = smoothstep(0.08, 0.3, ch.g); // hairline gap only
     float inChannel = step(0.01, ch.g);
     float idx = floor(ch.b * 255.0 + 0.5);
     vec4 p = texture2D(uParams, vec2((idx + 0.5) / uCount, 0.5));
