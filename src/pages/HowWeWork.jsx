@@ -1,95 +1,66 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Nav from '../components/Nav';
 import styles from './HowWeWork.module.css';
 
-import ThreadForm, { threadAmounts, THREAD_COLORS, THREAD_COUNT } from '../components/ThreadForm';
+const ChannelArt = lazy(() => import('../components/ChannelArt'));
 
-const GOLD = '#c6a748';
-const SILVER = '#c9ccd1';
-
-// Copy and structure from WASIVI_How_We_Work_Scroll_Demo-2.html.
 const SCENES = [
   {
-    phase: 'HOW WE WORK',
-    title: 'We begin inside the complexity.',
-    lead: 'For organizations and ideas that do not fit an off-the-shelf process.',
-    color: GOLD,
+    label: 'HOW WE WORK',
+    body: 'We research your situation, define the problem with you, develop and test a first version, and build in agreed phases. You receive clear recommendations, opportunities to review the work, and deliverables your team can use.',
   },
   {
-    phase: '01 — WE STUDY YOUR WORLD',
-    title: 'We learn before we prescribe.',
-    lead: 'Before we ask you to build anything, we study how your organization actually works.',
-    detail: <><strong>Your business.</strong> Your users. Your market. Your existing work. The problems already on record.</>,
-    color: GOLD,
+    label: '01 — RESEARCH',
+    body: 'Before we meet, we review your organization, market, existing work, and documented user concerns. We bring an initial assessment and focused questions so our first conversation starts with useful context.',
   },
   {
-    phase: '02 — THEN WE MEET',
-    title: 'Evidence meets experience.',
-    lead: 'We bring what the evidence suggests. You tell us what the evidence cannot.',
-    detail: 'Together, we identify the pressures that are real, the assumptions that are wrong, and the questions that still need answers.',
-    color: SILVER,
+    label: '02 — DISCOVERY',
+    body: 'We discuss the findings with you, examine where the work breaks down, and identify what has already been tried. Together, we create a shared brief defining the problem, constraints, priorities, and measures of success.',
   },
   {
-    phase: '03 — WE FIND THE PATTERN',
-    title: 'Complexity becomes legible.',
-    lead: 'We connect what you are experiencing to what is changing around you.',
-    detail: 'Research becomes insight. Pain points become priorities. Possibilities become a direction.',
-    color: GOLD,
+    label: '03 — RECOMMENDED DIRECTION',
+    body: 'We map the current experience or workflow and compare possible approaches by impact, effort, and feasibility. You receive a recommended direction, the trade-offs behind it, and a proposed scope for the first version.',
   },
   {
-    phase: '04 — THE FIRST USEFUL VERSION',
-    title: 'Not everything. The right thing.',
-    lead: 'We choose the clearest move that can solve a meaningful problem and prove its value.',
-    detail: 'Focused enough to build. Useful enough to test. Strong enough to guide what comes next.',
-    color: SILVER,
+    label: '04 — FIRST VERSION',
+    body: 'We agree on what to include, what to leave out, and which assumptions to test. We create a prototype, draft, or small working version that gives you something concrete to review before committing to a larger build.',
   },
   {
-    phase: '05 — WE BUILD IN PHASES',
-    title: 'Each phase earns the next.',
-    lead: 'One defined scope. One clear deliverable. One decision point.',
-    detail: 'You approve what comes next because the work has demonstrated its value—not because a clock ran out.',
-    color: GOLD,
+    label: '05 — TESTING & REFINEMENT',
+    body: 'We review the first version with you and test it with its intended users. You receive a summary of the findings, revisions based on the evidence, and a recommendation to proceed, adjust, or reconsider the approach.',
   },
   {
-    phase: '06 — I LEAD THE WORK DIRECTLY',
-    title: 'The thinking stays close to the work.',
-    lead: 'The person defining your engagement remains responsible for carrying it through.',
-    detail: 'When the work requires more, I bring the right specialists into the process.',
-    color: SILVER,
+    label: '06 — PHASED DELIVERY',
+    body: 'Each phase has an agreed scope, schedule, deliverable, and acceptance criteria. We build, test, resolve issues, and review the results with you. You receive completed work to assess before approving the next phase.',
   },
   {
-    phase: '07 — AI ACCELERATES THE WORK',
-    title: 'Judgment directs it.',
-    lead: 'AI helps us explore, compare, synthesize and build faster.',
-    detail: 'Human judgment decides what matters, what moves forward, and what reaches the client.',
-    color: GOLD,
+    label: '07 — HANDOFF',
+    body: 'We walk you through the finished work, transfer the agreed files and access, and provide relevant documentation. You know how to use it, who is responsible for maintaining it, and what any next steps involve.',
   },
   {
-    phase: '08 — HANDOFF',
-    title: 'You leave with something real.',
-    lead: 'A direction. A prototype. A product. A system your team can carry forward.',
-    detail: <><strong>The work is yours.</strong><br /><br />BRING US THE PROBLEM THAT DOESN’T FIT THE USUAL PROCESS.</>,
-    color: GOLD,
+    label: 'DIRECT LEADERSHIP — THROUGHOUT THE ENGAGEMENT',
+    body: 'I lead your engagement from discovery through handoff and remain your primary point of contact. When specialist expertise is needed, I coordinate their contribution. You have one person accountable for the work and its delivery.',
+  },
+  {
+    label: 'AI & HUMAN REVIEW — THROUGHOUT THE ENGAGEMENT',
+    body: 'We use AI to assist research, exploration, and implementation. We verify research against sources, review decisions against your goals, and test what we build. You receive work reviewed by the person responsible for delivering it.',
+  },
+  {
+    label: 'CLOSING — WHAT YOU TAKE FORWARD',
+    body: 'You leave with the agreed deliverables—a product direction, prototype, working product, presentation, or system—along with the files, documentation, and ownership terms needed to carry the work forward.',
   },
 ];
 const N = SCENES.length;
 
-const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
-const smooth = (x) => {
-  const c = clamp(x);
-  return c * c * (3 - 2 * c);
-};
-const reduced =
-  typeof window !== 'undefined' &&
-  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const clamp = (x) => Math.max(0, Math.min(1, x));
 
 export default function HowWeWork() {
   const journey = useRef();
-  const progress = useRef(0); // 0..N, read every frame by the canvas
+  // 0..1 along the journey; the artwork reads it every frame. Scrolling drives
+  // it, stopping holds it, scrolling back reverses it.
+  const fill = useRef(0);
   const [scene, setScene] = useState(0);
-  const [q, setQ] = useState(0); // for the track, legend and finale
-  const [isFull, setIsFull] = useState(false);
 
   useEffect(() => { document.title = 'WASIVI — How We Work'; }, []);
 
@@ -98,12 +69,11 @@ export default function HowWeWork() {
     const update = () => {
       queued = false;
       const el = journey.current;
-      const max = el.offsetHeight - window.innerHeight;
       const top = el.getBoundingClientRect().top + window.scrollY;
-      const value = clamp((window.scrollY - top) / max) * N;
-      progress.current = value;
-      setQ(value);
-      setScene(Math.min(N - 1, Math.floor(value)));
+      const q = clamp((window.scrollY - top) / (el.offsetHeight - window.innerHeight));
+      // Milestone: one channel fills across the whole journey.
+      fill.current = q;
+      setScene(Math.min(N - 1, Math.floor(q * N)));
     };
     const onScroll = () => {
       if (!queued) {
@@ -120,91 +90,32 @@ export default function HowWeWork() {
     };
   }, []);
 
-  const go = useCallback((target) => {
-    const el = journey.current;
-    const max = el.offsetHeight - window.innerHeight;
-    const top = el.getBoundingClientRect().top + window.scrollY;
-    window.scrollTo({ top: top + clamp(target / N) * max, behavior: reduced ? 'instant' : 'smooth' });
-  }, []);
-  const back = () => go(Math.max(0, scene - 1) + 0.02);
-  const next = () => go(scene === N - 1 ? N : scene + 1 + 0.02);
-
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.target.closest('button,input,textarea')) return;
-      if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
-      if (e.key === 'ArrowLeft') { e.preventDefault(); back(); }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
-
-  useEffect(() => {
-    const onFull = () => setIsFull(Boolean(document.fullscreenElement));
-    document.addEventListener('fullscreenchange', onFull);
-    return () => document.removeEventListener('fullscreenchange', onFull);
-  }, []);
-  const toggleFull = async () => {
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await document.documentElement.requestFullscreen();
-    } catch {
-      /* not allowed here; the page still works */
-    }
-  };
-
   const s = SCENES[scene];
-  // The finale only rises once the last slide is nearly done.
-  const finish = smooth((q - (N - 0.3)) / 0.3);
-  const amounts = threadAmounts(q);
 
   return (
     <main ref={journey} className={styles.journey}>
-      <section className={styles.frame} aria-label="Scroll to explore how WASIVI works">
+      <section className={styles.frame} aria-label="Scroll to follow how WASIVI works">
         <header className={styles.header}>
           <Link to="/" className={styles.brand}>WASIVI</Link>
           <Nav />
-          <button type="button" onClick={toggleFull} aria-label={isFull ? 'Exit full screen' : 'Enter full screen'}>
-            {isFull ? 'EXIT FULL SCREEN' : 'FULL SCREEN'}
-          </button>
+          <span className={styles.brandSpacer} aria-hidden="true" />
         </header>
         <h1 className={styles.srOnly}>How We Work</h1>
 
-        <div
-          className={styles.artwork}
-          style={{ transform: reduced ? 'none' : `scale(${1 + finish * 0.04})` }}
-        >
-          <ThreadForm progress={progress} />
-        </div>
-        <div className={styles.flare} style={{ opacity: finish }} />
-
-        <div className={styles.words} aria-live="polite" style={{ opacity: 1 - finish, '--color': s.color }}>
-          <div className={styles.phase}>{s.phase}</div>
-          <h2>{s.title}</h2>
-          <p className={styles.lead}>{s.lead}</p>
-          {s.detail && <div className={styles.detail}>{s.detail}</div>}
+        {/* Text lives in the black space beside the artwork, never on it. */}
+        <div className={styles.words} aria-live="polite">
+          <div className={styles.label}>{s.label}</div>
+          <p className={styles.body}>{s.body}</p>
+          <div className={styles.count}>{String(scene + 1).padStart(2, '0')} / {N}</div>
         </div>
 
-        <div className={styles.finale} style={{ opacity: finish }}>
-          <span>THE PROCESS BECOMES THE OUTCOME</span>
-          <strong>THE WORK IS YOURS.</strong>
+        <div className={styles.artwork}>
+          <Suspense fallback={null}>
+            <ChannelArt fill={fill} />
+          </Suspense>
         </div>
 
         <div className={styles.hint}>SCROLL TO FOLLOW THE WORK · STOP TO HOLD · SCROLL BACK TO REVERSE</div>
-        <div className={styles.legend} aria-hidden="true">
-          {Array.from({ length: THREAD_COUNT }, (_, k) => (
-            <i key={k} style={{ '--c': THREAD_COLORS[k % 2], opacity: amounts[k] > 0 ? 1 : 0.15 }} />
-          ))}
-        </div>
-
-        <nav className={styles.bottom} aria-label="Phase navigation">
-          <button type="button" onClick={back} disabled={scene === 0}>BACK</button>
-          <div className={styles.track}><i style={{ width: `${(q / N) * 100}%` }} /></div>
-          <span className={styles.count}>{String(scene + 1).padStart(2, '0')} / {String(N).padStart(2, '0')}</span>
-          <button type="button" onClick={next} disabled={q >= N - 0.02}>
-            {scene === N - 1 ? 'FINISH' : 'NEXT'}
-          </button>
-        </nav>
       </section>
     </main>
   );
