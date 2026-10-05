@@ -76,47 +76,44 @@ const SCENES = [
 ];
 const N = SCENES.length;
 
-const clamp = (x) => Math.max(0, Math.min(1, x));
+// The page plays as a show: nothing to press or scroll. Each scene stays up
+// long enough to read; the sculpture develops through it; at the end the
+// finished piece holds.
+const words = (t = '') => t.split(/\s+/).filter(Boolean).length;
+const DURATIONS = SCENES.map((sc) =>
+  Math.min(12, Math.max(6, 2.5 + 0.24 * (words(sc.title) + words(sc.we) + words(sc.receive))))
+);
+const STARTS = DURATIONS.reduce((acc, d, i) => [...acc, acc[i] + d], [0]);
 
 export default function HowWeWork() {
-  const journey = useRef();
-  // Position in slides (0–11); the artwork reads it every frame. Scrolling
-  // drives it, stopping holds it, scrolling back reverses it.
+  // Position in slides (0–11); the artwork reads it every frame.
   const progress = useRef(0);
   const [scene, setScene] = useState(0);
 
   useEffect(() => { document.title = 'WASIVI — How We Work'; }, []);
 
   useEffect(() => {
-    let queued = false;
-    const update = () => {
-      queued = false;
-      const el = journey.current;
-      const top = el.getBoundingClientRect().top + window.scrollY;
-      const q = clamp((window.scrollY - top) / (el.offsetHeight - window.innerHeight));
-      progress.current = q * N;
-      setScene(Math.min(N - 1, Math.floor(q * N)));
+    let raf = 0;
+    let last = performance.now();
+    let elapsed = 0;
+    const tick = (now) => {
+      elapsed += Math.min((now - last) / 1000, 0.1); // no jump after a hidden tab
+      last = now;
+      let i = 0;
+      while (i < N - 1 && elapsed >= STARTS[i + 1]) i++;
+      progress.current = Math.min(N, i + (elapsed - STARTS[i]) / DURATIONS[i]);
+      setScene(i);
+      if (elapsed < STARTS[N]) raf = requestAnimationFrame(tick);
     };
-    const onScroll = () => {
-      if (!queued) {
-        queued = true;
-        requestAnimationFrame(update);
-      }
-    };
-    update();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', update);
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', update);
-    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   const s = SCENES[scene];
 
   return (
-    <main ref={journey} className={styles.journey}>
-      <section className={styles.frame} aria-label="Scroll to follow how WASIVI works">
+    <main className={styles.journey}>
+      <section className={styles.frame} aria-label="How WASIVI works">
         <header className={styles.header}>
           <Link to="/" className={styles.brand}>WASIVI</Link>
           <Nav />
@@ -125,7 +122,7 @@ export default function HowWeWork() {
         <h1 className={styles.srOnly}>How We Work</h1>
 
         {/* Text lives in its own column beside the artwork, never on it. */}
-        <div className={styles.words} aria-live="polite">
+        <div key={scene} className={styles.words} aria-live="polite">
           <div className={styles.kicker}>{s.kicker}</div>
           <h2 className={styles.title}>{s.title}</h2>
           {s.we && <p className={styles.passage}>{s.we}</p>}
@@ -139,8 +136,6 @@ export default function HowWeWork() {
             <ChannelArt progress={progress} />
           </Suspense>
         </div>
-
-        <div className={styles.hint}>SCROLL TO FOLLOW THE WORK · STOP TO HOLD · SCROLL BACK TO REVERSE</div>
       </section>
     </main>
   );
