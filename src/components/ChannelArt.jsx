@@ -6,13 +6,14 @@ import schedule from './channelSchedule.json';
 // The approved How We Work artwork (the "Gold Thread Through the Hidden Map"
 // render with the gold string and mockup text removed), facing the viewer and
 // breathing. As the journey advances, its existing channels fill with shades
-// of gold and silver — the skeleton — and then the skin spreads over the rest
-// of the surface, so by the last slide the whole piece is filled.
+// of gold and silver — the skeleton — and then a bronze skin spreads over the
+// rest of the surface, so by the last slide the whole piece is filled.
 //
 // channels.png — R: how far along its channel a pixel is (0→1),
-//                G: inside a channel, B: which channel.
-// skin.png     — R: the artwork's surface, G: when the skin reaches it,
-//                B: nearest channel (the skin takes on its metal).
+//                G: distance in from the channel's edge (0 = outside),
+//                B: which channel.
+// skin.png     — R: the artwork's surface, G: when the skin reaches it
+//                (distance from the nearest channel).
 // A "screen" blend tints the dark spaces while every fine line stays brighter
 // than the colour, so the linework stays intact.
 
@@ -54,6 +55,7 @@ const fragmentShader = /* glsl */ `
   const vec3 GOLD_BRIGHT = vec3(0.86, 0.70, 0.33);
   const vec3 SILVER_MATTE = vec3(0.55, 0.57, 0.60);
   const vec3 SILVER_SHINY = vec3(0.90, 0.92, 0.95);
+  const vec3 BRONZE = vec3(0.56, 0.38, 0.17); // metallic, not brown
 
   vec3 metal(float silver, float shade, float sheen) {
     vec3 gold = mix(GOLD_DULL, GOLD_BRIGHT, shade);
@@ -75,7 +77,10 @@ const fragmentShader = /* glsl */ `
     vec3 art = texture2D(uArt, tc).rgb;
     vec4 ch = texture2D(uChan, tc);
     float along = ch.r;
-    float inside = step(0.5, ch.g);
+    // G is distance from the channel's edge: the fill stops a little short,
+    // so the artwork's own lines show through between neighbouring fills.
+    float inside = smoothstep(0.3, 0.75, ch.g);
+    float inChannel = step(0.01, ch.g);
     float idx = floor(ch.b * 255.0 + 0.5);
     vec4 p = texture2D(uParams, vec2((idx + 0.5) / uCount, 0.5));
 
@@ -85,15 +90,15 @@ const fragmentShader = /* glsl */ `
     float sheen = 0.5 + 0.5 * sin(along * 9.0 - uTime * 0.9 + p.a * 6.2832);
     vec3 tint = metal(p.g, p.b, sheen) * (fill * 0.8) + vec3(1.0, 0.95, 0.8) * edge * 0.3;
 
-    // Skin: grows out from the filled channels over the rest of the surface,
-    // each area taking the gold or silver of its nearest channel, so the
-    // colour follows the motif's structure rather than lying over it.
+    // Skin: a darker bronze grows out from the filled channels over the rest
+    // of the surface, stopping just short of them, so the piece reads as gold
+    // and silver channels set in a bronze ground.
     vec4 sk = texture2D(uSkin, tc);
-    float skin = clamp((uSkinFill - sk.g) / 0.06, 0.0, 1.0) * sk.r * (1.0 - inside);
-    vec4 near = texture2D(uParams, vec2((floor(sk.b * 255.0 + 0.5) + 0.5) / uCount, 0.5));
-    float skinSheen = 0.5 + 0.5 * sin(sk.g * 14.0 - uTime * 0.6 + near.a * 6.2832);
-    // Lighter than the channels, so the fine lines read through the skin.
-    tint += metal(near.g, near.b * 0.7, skinSheen) * skin * 0.42;
+    float gap = smoothstep(0.008, 0.022, sk.g); // keep clear of the channels
+    float skin = clamp((uSkinFill - sk.g) / 0.06, 0.0, 1.0) * sk.r * gap * (1.0 - inChannel);
+    float skinSheen = 0.5 + 0.5 * sin(sk.g * 14.0 + tc.x * 6.0 - uTime * 0.5);
+    // A wider swing than gold, so the bronze reads as metal catching light.
+    tint += BRONZE * mix(0.6, 1.3, pow(skinSheen, 3.0)) * skin * 0.6;
 
     vec3 col = 1.0 - (1.0 - art) * (1.0 - tint); // screen
     gl_FragColor = vec4(col, 1.0);
