@@ -1,6 +1,6 @@
-/* A tall scroll journey with one sticky full-screen frame. The text column and
-   the artwork sit side by side: the words are in the black space and never
-   cover the image. */
+/* A tall scroll journey with one sticky full-screen frame. The menu has its
+   own quiet top band; below it, a wide text column on the left and the
+   sculpture large on the right, in a fixed position throughout. */
 .journey { height: 1100vh; background: #0b0a08; }
 .frame {
   position: sticky;
@@ -10,8 +10,8 @@
   background: #0b0a08; /* the artwork's own background, so its edge is invisible */
   color: #eee9df;
   display: grid;
-  grid-template-columns: minmax(280px, 30%) 1fr;
-  grid-template-rows: auto 1fr auto;
+  grid-template-columns: minmax(340px, 38%) 1fr;
+  grid-template-rows: 76px 1fr auto;
 }
 
 .header {
@@ -19,7 +19,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 4%;
+  padding: 0 5%;
+  border-bottom: 1px solid #1d1b16;
 }
 .brand { font: 12px Arial, sans-serif; letter-spacing: 0.25em; color: #eee9df; text-decoration: none; }
 .brandSpacer { width: 60px; }
@@ -29,28 +30,41 @@
   grid-column: 1;
   grid-row: 2;
   align-self: center;
-  padding: 0 32px 0 13%;
+  padding: 0 64px 0 13%;
+  max-width: 640px;
   font-family: Georgia, serif;
 }
-.label { font: 11px/1.6 Arial, sans-serif; letter-spacing: 0.2em; color: #c6a748; margin-bottom: 20px; }
-.body { font-size: clamp(16px, 1.25vw, 19px); line-height: 1.6; margin: 0; color: #ddd8cc; }
-.count { font: 11px Arial, sans-serif; letter-spacing: 0.13em; color: #8c877c; margin-top: 28px; }
+.kicker { font: 11px/1.6 Arial, sans-serif; letter-spacing: 0.22em; color: #c6a748; margin-bottom: 14px; }
+.title { font-size: clamp(34px, 3.4vw, 54px); font-weight: 400; line-height: 1.08; margin: 0 0 30px; color: #f2eee5; }
+.passage { font-size: clamp(16px, 1.2vw, 19px); line-height: 1.6; margin: 0; color: #d8d3c7; }
+.receiveLabel {
+  font: 11px/1.6 Arial, sans-serif;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #a9a395;
+  margin: 26px 0 8px;
+}
+.count { font: 11px Arial, sans-serif; letter-spacing: 0.13em; color: #6f6a60; margin-top: 34px; }
 
-.artwork { grid-column: 2; grid-row: 2; position: relative; min-height: 0; }
+.artwork { grid-column: 2; grid-row: 2; position: relative; min-height: 0; margin: 3% 3% 3% 0; }
 .artwork canvas { display: block; }
 
 .hint {
   grid-column: 1 / -1;
-  padding: 0 4% 22px;
+  padding: 0 5% 22px;
   font: 10px Arial, sans-serif;
   letter-spacing: 0.15em;
-  color: #8c877c;
+  color: #6f6a60;
 }
 
 @media (max-width: 800px) {
-  .frame { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto auto; }
-  .artwork { grid-column: 1; grid-row: 2; }
+  .frame { grid-template-columns: 1fr; grid-template-rows: 64px 1fr auto auto; }
+  .header { padding: 0 6%; }
+  .artwork { grid-column: 1; grid-row: 2; margin: 2% 0; }
   .words { grid-column: 1; grid-row: 3; padding: 8px 7% 12px; }
-  .body { font-size: 15px; }
+  .title { font-size: 28px; margin-bottom: 14px; }
+  .passage { font-size: 15px; }
+  .receiveLabel { margin: 14px 0 4px; }
+  .count { margin-top: 14px; }
   .hint { font-size: 8px; }
 }

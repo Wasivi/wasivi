@@ -5,50 +5,73 @@ import styles from './HowWeWork.module.css';
 
 const ChannelArt = lazy(() => import('../components/ChannelArt'));
 
+// Each scene: a small kicker, the stage title, what we do, and what you
+// receive — two short passages rather than one dense paragraph.
 const SCENES = [
   {
-    label: 'HOW WE WORK',
-    body: 'We research your situation, define the problem with you, develop and test a first version, and build in agreed phases. You receive clear recommendations, opportunities to review the work, and deliverables your team can use.',
+    kicker: 'WASIVI',
+    title: 'How we work',
+    we: 'We research your situation, define the problem with you, develop and test a first version, and build in agreed phases.',
+    receive: 'Clear recommendations, opportunities to review the work, and deliverables your team can use.',
   },
   {
-    label: '01 — RESEARCH',
-    body: 'Before we meet, we review your organization, market, existing work, and documented user concerns. We bring an initial assessment and focused questions so our first conversation starts with useful context.',
+    kicker: '01',
+    title: 'Research',
+    we: 'Before we meet, we study your organization, market, existing work, and documented user concerns.',
+    receive: 'An initial assessment and focused questions that give our first conversation a useful starting point.',
   },
   {
-    label: '02 — DISCOVERY',
-    body: 'We discuss the findings with you, examine where the work breaks down, and identify what has already been tried. Together, we create a shared brief defining the problem, constraints, priorities, and measures of success.',
+    kicker: '02',
+    title: 'Discovery',
+    we: 'We discuss the findings with you, examine where the work breaks down, and identify what has already been tried.',
+    receive: 'A shared brief, created together, defining the problem, constraints, priorities, and measures of success.',
   },
   {
-    label: '03 — RECOMMENDED DIRECTION',
-    body: 'We map the current experience or workflow and compare possible approaches by impact, effort, and feasibility. You receive a recommended direction, the trade-offs behind it, and a proposed scope for the first version.',
+    kicker: '03',
+    title: 'Recommended direction',
+    we: 'We map the current experience or workflow and compare possible approaches by impact, effort, and feasibility.',
+    receive: 'A recommended direction, the trade-offs behind it, and a proposed scope for the first version.',
   },
   {
-    label: '04 — FIRST VERSION',
-    body: 'We agree on what to include, what to leave out, and which assumptions to test. We create a prototype, draft, or small working version that gives you something concrete to review before committing to a larger build.',
+    kicker: '04',
+    title: 'First version',
+    we: 'We agree on what to include, what to leave out, and which assumptions to test.',
+    receive: 'A prototype, draft, or small working version—something concrete to review before committing to a larger build.',
   },
   {
-    label: '05 — TESTING & REFINEMENT',
-    body: 'We review the first version with you and test it with its intended users. You receive a summary of the findings, revisions based on the evidence, and a recommendation to proceed, adjust, or reconsider the approach.',
+    kicker: '05',
+    title: 'Testing & refinement',
+    we: 'We review the first version with you and test it with its intended users.',
+    receive: 'A summary of the findings, revisions based on the evidence, and a recommendation to proceed, adjust, or reconsider the approach.',
   },
   {
-    label: '06 — PHASED DELIVERY',
-    body: 'Each phase has an agreed scope, schedule, deliverable, and acceptance criteria. We build, test, resolve issues, and review the results with you. You receive completed work to assess before approving the next phase.',
+    kicker: '06',
+    title: 'Phased delivery',
+    we: 'Each phase has an agreed scope, schedule, deliverable, and acceptance criteria. We build, test, resolve issues, and review the results with you.',
+    receive: 'Completed work to assess before approving the next phase.',
   },
   {
-    label: '07 — HANDOFF',
-    body: 'We walk you through the finished work, transfer the agreed files and access, and provide relevant documentation. You know how to use it, who is responsible for maintaining it, and what any next steps involve.',
+    kicker: '07',
+    title: 'Handoff',
+    we: 'We walk you through the finished work, transfer the agreed files and access, and provide relevant documentation.',
+    receive: 'A clear understanding of how to use it, who is responsible for maintaining it, and what any next steps involve.',
   },
   {
-    label: 'DIRECT LEADERSHIP — THROUGHOUT THE ENGAGEMENT',
-    body: 'I lead your engagement from discovery through handoff and remain your primary point of contact. When specialist expertise is needed, I coordinate their contribution. You have one person accountable for the work and its delivery.',
+    kicker: 'THROUGHOUT THE ENGAGEMENT',
+    title: 'Direct leadership',
+    we: 'I lead your engagement from discovery through handoff and remain your primary point of contact. When specialist expertise is needed, I coordinate their contribution.',
+    receive: 'One person accountable for the work and its delivery.',
   },
   {
-    label: 'AI & HUMAN REVIEW — THROUGHOUT THE ENGAGEMENT',
-    body: 'We use AI to assist research, exploration, and implementation. We verify research against sources, review decisions against your goals, and test what we build. You receive work reviewed by the person responsible for delivering it.',
+    kicker: 'THROUGHOUT THE ENGAGEMENT',
+    title: 'AI & human review',
+    we: 'We use AI to assist research, exploration, and implementation. We verify research against sources, review decisions against your goals, and test what we build.',
+    receive: 'Work reviewed by the person responsible for delivering it.',
   },
   {
-    label: 'CLOSING — WHAT YOU TAKE FORWARD',
-    body: 'You leave with the agreed deliverables—a product direction, prototype, working product, presentation, or system—along with the files, documentation, and ownership terms needed to carry the work forward.',
+    kicker: 'CLOSING',
+    title: 'What you take forward',
+    receive: 'The agreed deliverables—a product direction, prototype, working product, presentation, or system—along with the files, documentation, and ownership terms needed to carry the work forward.',
   },
 ];
 const N = SCENES.length;
@@ -101,10 +124,13 @@ export default function HowWeWork() {
         </header>
         <h1 className={styles.srOnly}>How We Work</h1>
 
-        {/* Text lives in the black space beside the artwork, never on it. */}
+        {/* Text lives in its own column beside the artwork, never on it. */}
         <div className={styles.words} aria-live="polite">
-          <div className={styles.label}>{s.label}</div>
-          <p className={styles.body}>{s.body}</p>
+          <div className={styles.kicker}>{s.kicker}</div>
+          <h2 className={styles.title}>{s.title}</h2>
+          {s.we && <p className={styles.passage}>{s.we}</p>}
+          <div className={styles.receiveLabel}>You receive</div>
+          <p className={styles.passage}>{s.receive}</p>
           <div className={styles.count}>{String(scene + 1).padStart(2, '0')} / {N}</div>
         </div>
 

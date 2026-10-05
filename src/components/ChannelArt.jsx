@@ -14,8 +14,8 @@ import schedule from './channelSchedule.json';
 //                B: which channel.
 // skin.png     — R: the artwork's surface, G: when the skin reaches it
 //                (distance from the nearest channel).
-// A "screen" blend tints the dark spaces while every fine line stays brighter
-// than the colour, so the linework stays intact.
+// The metal is driven by the artwork's own brightness, so its fine lines,
+// shadows and depth stay intact under the colour.
 
 const ART = '/images/How_We_Work/artwork.jpg';
 const CHANNELS = '/images/How_We_Work/channels.png';
@@ -67,6 +67,13 @@ const fragmentShader = /* glsl */ `
     return mix(gold * g, silv * s, silver);
   }
 
+  // Map the artwork's brightness onto a metal: dark stays dark (tinted), mid
+  // tones take the colour, the brightest threads catch a near-white glint.
+  vec3 metalize(float lum, vec3 m) {
+    vec3 c = m * (0.12 + 2.1 * lum);
+    return c + vec3(1.0, 0.96, 0.88) * pow(lum, 2.4) * 0.9;
+  }
+
   void main() {
     // Breathing: a slow swell plus soft ripples, like knit fabric inhaling.
     float swell = 1.0 + 0.008 * sin(uTime * 0.85);
@@ -84,23 +91,29 @@ const fragmentShader = /* glsl */ `
     float idx = floor(ch.b * 255.0 + 0.5);
     vec4 p = texture2D(uParams, vec2((idx + 0.5) / uCount, 0.5));
 
+    // Material develops *within* the artwork: the original's own light and
+    // dark drive the metal, so threads turn to bright metal while the
+    // shadows between them stay deep — the linework, shadows and depth of
+    // the original are kept rather than painted over.
+    float lum = dot(art, vec3(0.299, 0.587, 0.114));
+    vec3 col = art;
+
     // Skeleton: each channel fills along its own contour, soft leading edge.
     float fill = clamp((p.r - along) / 0.03, 0.0, 1.0) * inside;
     float edge = fill * (1.0 - fill) * 4.0;
     float sheen = 0.5 + 0.5 * sin(along * 9.0 - uTime * 0.9 + p.a * 6.2832);
-    vec3 tint = metal(p.g, p.b, sheen) * (fill * 0.8) + vec3(1.0, 0.95, 0.8) * edge * 0.3;
+    col = mix(col, metalize(lum, metal(p.g, p.b, sheen)), fill);
+    col += vec3(1.0, 0.95, 0.8) * edge * lum * 0.6; // glint at the leading edge
 
-    // Skin: a darker bronze grows out from the filled channels over the rest
-    // of the surface, stopping just short of them, so the piece reads as gold
-    // and silver channels set in a bronze ground.
+    // Skin: bronze grows out from the filled channels over the rest of the
+    // surface, stopping just short of them, so the piece reads as gold and
+    // silver channels set in a bronze ground.
     vec4 sk = texture2D(uSkin, tc);
     float gap = smoothstep(0.008, 0.022, sk.g); // keep clear of the channels
     float skin = clamp((uSkinFill - sk.g) / 0.06, 0.0, 1.0) * sk.r * gap * (1.0 - inChannel);
     float skinSheen = 0.5 + 0.5 * sin(sk.g * 14.0 + tc.x * 6.0 - uTime * 0.5);
-    // A wider swing than gold, so the bronze reads as metal catching light.
-    tint += BRONZE * mix(0.6, 1.3, pow(skinSheen, 3.0)) * skin * 0.6;
+    col = mix(col, metalize(lum, BRONZE * mix(0.7, 1.3, pow(skinSheen, 3.0))), skin);
 
-    vec3 col = 1.0 - (1.0 - art) * (1.0 - tint); // screen
     gl_FragColor = vec4(col, 1.0);
   }
 `;
