@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WASIVI</title>
+<!-- Light or dark before anything paints, so the page never flashes the
+     wrong one. Dark (the brand look) unless the visitor chose light with the
+     sun/moon button in the menu. -->
+<script>(function(){var t=null;try{t=localStorage.getItem("wasivi-theme")}catch(e){}document.documentElement.dataset.theme=t==="light"?"light":"dark";})();</script>
 </head>
 <body>
 <div id="root"></div>

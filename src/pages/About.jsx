@@ -2,12 +2,12 @@ import { useEffect } from 'react';
 import Nav from '../components/Nav';
 import './About.css';
 
-export default function About() {
-  useEffect(() => { document.title = 'WASIVI — About'; }, []);
+export default function About({ embedded }) {
+  useEffect(() => { if (!embedded) document.title = 'WASIVI — About'; }, [embedded]);
 
   return (
     <>
-      <Nav />
+      {!embedded && <Nav />}
       <div className="split">
         <div className="photo-col">
           <img className="photo-real" src="/images/about-photo.png" alt="Natalie Walker" />

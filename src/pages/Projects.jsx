@@ -96,10 +96,10 @@ const PROJECTS = [
   },
 ];
 
-export default function Projects() {
+export default function Projects({ embedded }) {
   const [openKey, setOpenKey] = useState(null);
 
-  useEffect(() => { document.title = 'WASIVI — Projects'; }, []);
+  useEffect(() => { if (!embedded) document.title = 'WASIVI — Projects'; }, [embedded]);
 
   useEffect(() => {
     document.body.style.overflow = openKey ? 'hidden' : '';
@@ -118,7 +118,7 @@ export default function Projects() {
 
   return (
     <>
-      <Nav />
+      {!embedded && <Nav />}
 
       <div className={styles.heroLine}>
         <h1>You imagine it. We build it.</h1>

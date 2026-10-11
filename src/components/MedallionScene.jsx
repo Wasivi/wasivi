@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer, PerformanceMonitor } from '@react-three/drei';
 import * as THREE from 'three';
 import glyph from './medallionGlyph.json';
+import { useTheme } from './ThemeToggle';
 
 // Units: the chrome ring's outer radius is 1. The glyph outline was traced
 // from the hero.mp4 motif, snapped to its grid and made symmetric.
@@ -402,6 +403,7 @@ const dustVertex = /* glsl */ `
 `;
 
 const dustFragment = /* glsl */ `
+  uniform float uLight; // 1 on the light theme
   uniform vec3 uGold;
   uniform vec3 uChrome;
   varying float vBlur;
@@ -425,12 +427,18 @@ const dustFragment = /* glsl */ `
     vec3 col = mix(uGold, uChrome, vTint) * shape * vAlpha * glint;
     // Premultiplied additive: alpha = brightness so flakes composite cleanly
     // over the transparent canvas.
-    gl_FragColor = vec4(col, max(col.r, max(col.g, col.b)));
+    vec4 additive = vec4(col, max(col.r, max(col.g, col.b)));
+    // On a light page added light washes out, so flakes are painted solid:
+    // brass gold and steel, still crisp, glinting as they turn.
+    vec3 solid = mix(vec3(0.62, 0.55, 0.20), vec3(0.50, 0.52, 0.55), vTint) * mix(0.85, 1.25, pow(vTumble, 6.0));
+    float a = shape * clamp(vAlpha * 1.6, 0.0, 1.0);
+    gl_FragColor = mix(additive, vec4(solid * a, a), uLight);
   }
 `;
 
 function GoldDust({ count, focus }) {
   const material = useRef();
+  const light = useTheme() === 'light';
   const size = useThree((s) => s.size);
   const dpr = useThree((s) => s.viewport.dpr);
 
@@ -465,6 +473,7 @@ function GoldDust({ count, focus }) {
       uPixelRatio: { value: 1 },
       uScale: { value: 1 },
       uKeyPos: { value: KEY_LIGHT_POS.clone() },
+      uLight: { value: 0 },
       uGold: { value: new THREE.Color('#f4db6e') },
       uChrome: { value: new THREE.Color('#eef1f4') },
     }),
@@ -475,6 +484,7 @@ function GoldDust({ count, focus }) {
     const u = material.current.uniforms;
     u.uTime.value += Math.min(delta, 0.1) * (prefersReducedMotion ? 0.3 : 1);
     u.uFocus.value = focus.current;
+    u.uLight.value = light ? 1 : 0;
     u.uKeyPos.value.copy(medallionPos).add(KEY_LIGHT_POS);
     u.uPixelRatio.value = dpr;
     u.uScale.value = size.height * 0.03; // point size tracks canvas size
@@ -489,7 +499,7 @@ function GoldDust({ count, focus }) {
         uniforms={uniforms}
         transparent
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={light ? THREE.NormalBlending : THREE.AdditiveBlending}
         premultipliedAlpha
       />
     </points>

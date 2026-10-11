@@ -6,6 +6,9 @@ const ABOVE = 160; // px of falling room above the letters
 const MAX_FLAKES = 46;
 const GOLD = [244, 219, 110];
 const SILVER = [236, 240, 244];
+// On the light page pale flakes vanish; these read as gold and steel there.
+const GOLD_ON_LIGHT = [158, 140, 52];
+const SILVER_ON_LIGHT = [128, 132, 138];
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -81,7 +84,7 @@ export default function Wordmark() {
         spin: Math.random() * Math.PI * 2,
         spinRate: 0.6 + Math.random() * 1.6,
         tumbleRate: 1 + Math.random() * 2.5,
-        color: silver ? SILVER : GOLD,
+        silver,
         target: null,
         landed: 0, // seconds since landing; 0 while falling
         rest: 3 + Math.random() * 4,
@@ -98,7 +101,8 @@ export default function Wordmark() {
 
     // Fades shrink the flake instead of dimming it: dim gold reads as brown.
     function draw(f, fade, tumble) {
-      const [r, g, b] = f.color;
+      const light = document.documentElement.dataset.theme === 'light';
+      const [r, g, b] = f.silver ? (light ? SILVER_ON_LIGHT : SILVER) : (light ? GOLD_ON_LIGHT : GOLD);
       const glint = 0.6 + 0.8 * Math.pow(tumble, 6);
       ctx.save();
       ctx.translate(f.x, f.y);

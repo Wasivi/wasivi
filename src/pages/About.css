@@ -1,5 +1,5 @@
 .split { display: grid; grid-template-columns: 55vw 45vw; min-height: 80vh; }
-.photo-col { position: relative; background: #15130f; }
+.photo-col { position: relative; background: var(--black); }
 .photo-real {
   position: absolute;
   inset: 0;
@@ -9,7 +9,7 @@
 }
 .text-col { display: flex; flex-direction: column; justify-content: center; padding: 60px 64px 60px 56px; }
 .name-line { font-size: 21px; letter-spacing: 0.02em; color: var(--gold-bright); margin-bottom: 28px; line-height: 1.4; }
-.bio { font-size: 17px; color: #ddd9cc; max-width: 480px; }
+.bio { font-size: 17px; color: var(--body); max-width: 480px; }
 .bio p { margin: 0 0 20px; }
 @media (max-width: 900px) {
   .split { grid-template-columns: 1fr; }

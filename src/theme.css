@@ -1,11 +1,40 @@
 :root {
-  --black: #15130f;
+  --black: #15130f;       /* page background */
   --gold-bright: #a89c3e;
+  --gold-soft: #8a7d2e;
   --chrome: #c7c7c2;
-  --paper: #f4f2ea;
+  --paper: #f4f2ea;       /* main text */
   --muted: #8c8a80;
   --lightgray: #b8b8b6;
-  --silver: #e6e8e9;
+  --silver: #e6e8e9;      /* headings */
+  --faint: #5a564d;
+  --body: #ddd9cc;        /* long-form text */
+  --rule: #24211b;        /* hairlines */
+  --panel: #101010;       /* dropdowns */
+  --panel-2: #17160f;     /* raised panels */
+  --stage: #0b0a08;       /* How We Work's sculpture stage */
+  color-scheme: dark;
+}
+
+/* Light mode, from the sun/moon button in the menu. Neutral paper and
+   graphite — never cream-on-brown — with the gold deepened to olive so it
+   still reads as gold on a light page. */
+:root[data-theme="light"] {
+  --black: #f6f5f0;
+  --gold-bright: #7a6f22;
+  --gold-soft: #7a6f22;
+  --chrome: #4a4945;
+  --paper: #1b1b19;
+  --muted: #66635b;
+  --lightgray: #45433d;
+  --silver: #232326;
+  --faint: #8d897e;
+  --body: #34332e;
+  --rule: #dedbd2;
+  --panel: #ffffff;
+  --panel-2: #efede6;
+  --stage: #f6f5f0;
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -28,6 +57,53 @@ nav {
   letter-spacing: 0.1em;
 }
 nav.hero-nav { padding: 0; margin-top: 24px; }
+
+/* The shared header on every page except Home (layout B): WASIVI in the
+   top-left corner, small spaced links in the top-right. */
+.site-header {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 22px 36px;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 11px;
+  line-height: 1.6;
+  letter-spacing: 0.22em;
+}
+.site-brand {
+  /* The name, with presence: the logo's own treatment from Home — Engravers
+     Gothic, wide-spaced, silver — with a fine gold rule beneath. */
+  position: relative;
+  font-family: 'Engravers Gothic', 'Copperplate', Garamond, serif;
+  font-size: 20px;
+  letter-spacing: 0.35em;
+  line-height: 1;
+  color: var(--silver);
+  text-decoration: none;
+  padding-bottom: 7px;
+}
+.site-brand::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 34px;
+  height: 1px;
+  background: var(--gold-bright);
+}
+@media (max-width: 800px) { .site-brand { font-size: 15px; letter-spacing: 0.28em; } }
+nav.site-nav { padding: 0; gap: 26px; font: inherit; letter-spacing: inherit; }
+nav.site-nav a { color: var(--faint); }
+nav.site-nav a:hover { color: var(--muted); }
+nav.site-nav a.active { color: var(--gold-bright); }
+nav.site-nav .dropdown { top: 22px; font-size: 13px; letter-spacing: 0.06em; }
+@media (max-width: 800px) {
+  .site-header { padding: 22px 6%; gap: 12px; }
+  nav.site-nav { gap: 14px; font-size: 10px; letter-spacing: 0.12em; flex-wrap: wrap; justify-content: flex-end; }
+}
 nav .menu-item { position: relative; }
 nav a { color: var(--muted); text-decoration: none; }
 nav a.active { color: var(--gold-bright); }
@@ -37,8 +113,8 @@ nav .dropdown {
   top: 26px;
   left: 50%;
   transform: translateX(-50%);
-  background: #101010;
-  border: 1px solid #201f1b;
+  background: var(--panel);
+  border: 1px solid var(--rule);
   padding: 14px 28px;
   white-space: nowrap;
   gap: 28px;
@@ -48,3 +124,23 @@ nav .menu-item:hover .dropdown,
 nav .dropdown.open { display: flex; }
 nav .dropdown a { padding: 0; font-size: 14px; color: var(--muted); }
 nav .dropdown a:hover, nav .dropdown a.active { color: var(--gold-bright); }
+
+/* The sun/moon light-dark button, last in the menu. */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  vertical-align: middle;
+}
+.theme-toggle svg { width: 14px; height: 14px; }
+.theme-toggle:hover { color: var(--gold-bright); border-color: var(--gold-bright); }
+.theme-toggle:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 2px; }
+nav .menu-item:has(.theme-toggle) { display: flex; }

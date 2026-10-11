@@ -83,12 +83,12 @@ function QA({ q, a }) {
   );
 }
 
-export default function Faq() {
-  useEffect(() => { document.title = 'WASIVI — FAQ'; }, []);
+export default function Faq({ embedded }) {
+  useEffect(() => { if (!embedded) document.title = 'WASIVI — FAQ'; }, [embedded]);
 
   return (
     <>
-      <Nav />
+      {!embedded && <Nav />}
       <div className={styles.wrap}>
         <h1 className={styles.title}>FAQ</h1>
         {SECTIONS.map((section) => (

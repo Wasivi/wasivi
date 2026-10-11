@@ -7,8 +7,8 @@ import './Home.css';
 // page text renders first and other pages never download it.
 const MedallionScene = lazy(() => import('../components/MedallionScene'));
 
-export default function Home() {
-  useEffect(() => { document.title = 'WASIVI'; }, []);
+export default function Home({ embedded }) {
+  useEffect(() => { if (!embedded) document.title = 'WASIVI'; }, [embedded]);
 
   return (
     <section className="hero">

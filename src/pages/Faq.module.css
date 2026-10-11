@@ -1,9 +1,9 @@
 .wrap { max-width: 760px; margin: 20px auto 100px; padding: 0 24px; }
-.title { font-size: 30px; font-weight: 400; color: #e6e8e9; text-align: center; margin: 0 0 12px; }
+.title { font-size: 30px; font-weight: 400; color: var(--silver); text-align: center; margin: 0 0 12px; }
 .sectionLabel { font-size: 12px; letter-spacing: 0.12em; color: var(--gold-bright); margin: 44px 0 4px; }
 .sectionLabel:first-of-type { margin-top: 40px; }
 
-.qa { border-bottom: 1px solid #1c1c19; }
+.qa { border-bottom: 1px solid var(--rule); }
 .qa summary {
   list-style: none;
   cursor: pointer;

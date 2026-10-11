@@ -1,0 +1,32 @@
+/* The one-page site: sections stacked in order, the shared menu fixed at the
+   top once you're past the hero. */
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+.one-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  /* A soft fade of the page colour, so content scrolling under stays clear
+     of the menu. */
+  background: linear-gradient(var(--black) 55%, transparent);
+  opacity: 0;
+  transform: translateY(-12px);
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.one-header-on { opacity: 1; transform: none; pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) { .one-header { transition: none; } }
+
+/* Over How We Work's dark stage the menu needs no backing of its own. */
+.one-header-clear { background: none; }
+
+/* Sections are scrolled to right at their top; the padding below leaves
+   room under the fixed menu. */
+.one-section { scroll-margin-top: 0; }
+
+/* Breathing room between sections, below the menu. */
+.one-about, .one-projects, .one-faq { padding-top: 88px; }
+.one-faq { padding-bottom: 40px; }

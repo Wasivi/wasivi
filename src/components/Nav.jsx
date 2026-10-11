@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import ThemeToggle from './ThemeToggle';
 
 const COMPANY_ROUTES = ['/about', '/how-we-work', '/faq'];
 
@@ -18,8 +19,8 @@ export default function Nav({ variant }) {
 
   const isCompanyActive = COMPANY_ROUTES.includes(location.pathname);
 
-  return (
-    <nav className={variant === 'hero' ? 'hero-nav' : undefined}>
+  const links = (
+    <nav className={variant === 'hero' ? 'hero-nav' : 'site-nav'}>
       <div className="menu-item">
         <Link to="/" className={location.pathname === '/' ? 'active' : undefined}>HOME</Link>
       </div>
@@ -31,7 +32,7 @@ export default function Nav({ variant }) {
         >
           COMPANY
         </a>
-        <div className={open ? 'dropdown companyDropdown open' : 'dropdown companyDropdown'}>
+        <div className={open ? 'dropdown companyDropdown open' : 'dropdown companyDropdown'} onClick={() => setOpen(false)}>
           <Link to="/about" className={location.pathname === '/about' ? 'active' : undefined}>About</Link>
           <Link to="/how-we-work" className={location.pathname === '/how-we-work' ? 'active' : undefined}>How We Work</Link>
           <Link to="/faq" className={location.pathname === '/faq' ? 'active' : undefined}>FAQ</Link>
@@ -43,6 +44,20 @@ export default function Nav({ variant }) {
       <div className="menu-item">
         <a href="https://read.wasivi.com">SUBSTACK</a>
       </div>
+      <div className="menu-item">
+        <ThemeToggle />
+      </div>
     </nav>
+  );
+
+  // Home has its own menu under the wordmark. Every other page shares one
+  // header, in the same place: WASIVI in the top-left corner, the links in
+  // the top-right.
+  if (variant === 'hero') return links;
+  return (
+    <header className="site-header">
+      <Link to="/" className="site-brand">WASIVI</Link>
+      {links}
+    </header>
   );
 }

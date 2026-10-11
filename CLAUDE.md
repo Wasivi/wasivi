@@ -1,7 +1,9 @@
 # WASIVI site
 
 Portfolio site for WASIVI (Natalie Walker). Vite + React + React Router, with
-React Three Fiber for the home-page hero. Product context: `wasivi-prd.md`.
+React Three Fiber for the home-page hero. Product context: `wasivi-prd.md`. How We Work art
+direction (composition, motion, interactivity, light mode):
+`howwework-artdirection-brief.md`.
 
 ## Commands
 
@@ -48,6 +50,13 @@ React Three Fiber for the home-page hero. Product context: `wasivi-prd.md`.
 - Gold dust = crisp, visible gold flakes falling slowly like snow, with a few
   silver ones. Not soft blurry bokeh.
 - Page background is `--black: #15130f` (see `src/theme.css`).
+- Light mode: the sun/moon button after SUBSTACK in the menu
+  (`src/components/ThemeToggle.jsx`). The site starts dark; the choice is
+  remembered in `localStorage` (`wasivi-theme`) and applied in `index.html`
+  before paint. Colours are tokens in `src/theme.css`, overridden under
+  `:root[data-theme="light"]` — use the tokens, never hard-coded colours.
+  WebGL/canvas pieces read the theme with `useTheme()` (gold dust paints solid
+  flakes on light, since added light washes out).
 
 ## Verifying work
 
