@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PerformanceMonitor } from '@react-three/drei';
 import * as THREE from 'three';
 import schedule from './channelSchedule.json';
+import { useTheme } from './ThemeToggle';
 
 // The approved How We Work artwork (the "Gold Thread Through the Hidden Map"
 // render with the gold string and mockup text removed), built as a real
@@ -222,6 +223,7 @@ const fragmentShader = /* glsl */ `
   varying vec2 vTc;
   varying vec3 vWorld;
   varying float vBreath;
+  uniform float uLight; // 0 = night, 1 = daylight (light theme)
 
   const vec3 GOLD_DULL = vec3(0.50, 0.40, 0.17);
   const vec3 GOLD_BRIGHT = vec3(0.86, 0.70, 0.33);
@@ -241,7 +243,8 @@ const fragmentShader = /* glsl */ `
   // Map the artwork's brightness onto a metal: shadows take the colour but
   // stay deeper, the threads stand out brighter, the brightest catch a glint.
   vec3 metalize(float lum, vec3 m) {
-    vec3 c = m * (0.42 + 1.7 * lum);
+    // In daylight the metal's shadows stay lighter, so gold never goes brown.
+    vec3 c = m * mix(0.42 + 1.7 * lum, 0.78 + 1.0 * lum, uLight);
     return c + vec3(1.0, 0.96, 0.88) * pow(lum, 2.4) * 0.8;
   }
 
@@ -275,9 +278,15 @@ const fragmentShader = /* glsl */ `
     // Colour, as before: bronze skeleton through the walls, then gold and
     // silver along each channel.
     vec3 col = art;
+    // Daylight: the same carving, cast in pale pewter and plaster instead of
+    // blackened metal. Grooves stay a soft warm grey; ridges go near white.
+    vec3 plaster = mix(vec3(0.60, 0.59, 0.56), vec3(0.97, 0.96, 0.93), smoothstep(0.02, 0.55, lum));
+    col = mix(col, plaster, uLight);
     float skel = smoothstep(0.0, 1.0, (uSkinFill - sk.g) / 0.35) * (1.0 - inside);
     float skelSheen = 0.5 + 0.5 * sin(sk.g * 14.0 + vTc.x * 6.0 - uTime * 0.5);
-    col = mix(col, metalize(lum, BRONZE * mix(0.7, 1.3, pow(skelSheen, 3.0))), skel);
+    // In daylight the skeleton is champagne brass rather than bronze.
+    vec3 skelMetal = mix(BRONZE, vec3(0.80, 0.70, 0.45), uLight);
+    col = mix(col, metalize(lum, skelMetal * mix(0.7, 1.3, pow(skelSheen, 3.0))), skel);
     float sheen = 0.5 + 0.5 * sin(ch.r * 9.0 - uTime * 0.9 + p.a * 6.2832);
     col = mix(col, metalize(lum, metal(p.g, p.b, sheen)), fill);
     float edge = fill * (1.0 - fill) * 4.0;
@@ -294,7 +303,10 @@ const fragmentShader = /* glsl */ `
     float d2 = max(dot(n, L2), 0.0);
     float d3 = max(dot(n, L3), 0.0);
     // Metal never sinks so deep in shadow that gold or bronze turns brown.
-    vec3 lit = col * (mix(0.3, 0.5, metalness) + 1.0 * d1 + 0.35 * d2 + 0.25 * d3);
+    // Daylight is softer and fuller: more ambient, gentler key.
+    float amb = mix(mix(0.3, 0.5, metalness), 0.62, uLight);
+    float key = mix(1.0, 0.55, uLight);
+    vec3 lit = col * (amb + key * d1 + 0.35 * d2 + 0.25 * d3);
     float s1 = pow(max(dot(n, normalize(L1 + v)), 0.0), mix(24.0, 60.0, metalness));
     float s2 = pow(max(dot(n, normalize(L2 + v)), 0.0), 40.0);
     vec3 tint = mix(vec3(0.75), normalize(col + 0.001) * 1.5, metalness);
@@ -307,6 +319,7 @@ const fragmentShader = /* glsl */ `
 `;
 
 function Sculpture({ progress }) {
+  const light = useTheme() === 'light';
   const material = useRef();
   const mesh = useRef();
   const [height, setHeight] = useState(null);
@@ -341,6 +354,7 @@ function Sculpture({ progress }) {
         uSkinFill: { value: 0 },
         uTime: { value: 0 },
         uBreath: { value: 0.5 },
+        uLight: { value: 0 },
         uDepth: { value: DEPTH },
         uTexel: { value: new THREE.Vector2(2 / SRC.w, 2 / SRC.h) },
         uSize: { value: new THREE.Vector2(WIDTH, HEIGHT) },
@@ -363,6 +377,8 @@ function Sculpture({ progress }) {
     const u = material.current?.uniforms;
     if (!u || !mesh.current) return;
     if (!prefersReducedMotion) u.uTime.value += Math.min(delta, 0.1);
+    // Ease between night and daylight when the theme changes.
+    u.uLight.value += ((light ? 1 : 0) - u.uLight.value) * Math.min(1, delta * 4);
     // Journey position in slides (0–11): each channel's fill follows the
     // schedule.
     const q = progress.current;

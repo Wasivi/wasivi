@@ -98,7 +98,9 @@
   /* Pale champagne: gold text on gold would vanish. */
   color: #f3e7bd;
 }
-.pool .statement { font-size: 19px; font-weight: 400; color: var(--paper); max-width: 60ch; }
+/* The finale's words sit on the gold, so they stay light in both themes. */
+.pool .title { color: #fbf8f1; }
+.pool .statement { font-size: 19px; font-weight: 400; color: #fbf8f1; max-width: 60ch; }
 .pool .receive { font-size: 18px; font-weight: 400; color: #ebe6da; max-width: 62ch; }
 .pool .receive b { color: #f3e7bd; font-weight: 600; }
 .pool .eyebrow, .pool .statement, .pool .receive {
