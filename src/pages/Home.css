@@ -39,7 +39,7 @@
   line-height: 1;
   color: var(--wordmark);
 }
-.social-row { margin-top: 28px; display: flex; gap: 24px; align-items: center; }
+.social-row { margin-top: 34px; display: flex; gap: 24px; align-items: center; }
 .social-row a { color: var(--chrome); text-decoration: none; display: flex; }
 .social-row svg { width: 18px; height: 18px; }
 .tagline { margin-top: 20px; color: var(--lightgray); font-size: 18px; letter-spacing: 0.05em; }
@@ -96,22 +96,34 @@
   nav.hero-nav { flex-wrap: wrap; justify-content: center; gap: 14px 26px; font-size: 12px; padding: 0 16px; }
 }
 
-/* The end of the hero: no ruled line, just one short brush stroke on its
-   own — thick in the middle, tapering to nothing at both ends, like a single
-   stroke of ink. It touches nothing else. */
-.hero::after {
+/* WASIVI's seal: a fine gold line under the name and, beside the last I, a
+   short separate stroke, like the brush mark on a Japanese print. The two
+   never touch. */
+.wordmark::before {
   content: '';
   position: absolute;
-  left: 50%;
-  bottom: 18px;
-  width: 140px;
-  height: 4px;
-  transform: translateX(-50%) rotate(-2deg);
-  border-radius: 50%;
-  background: radial-gradient(ellipse at 45% 50%, var(--gold-bright) 0%, var(--gold-bright) 35%, transparent 72%);
-  opacity: 0.85;
+  left: 0.35em;   /* the text indent: starts under the W */
+  right: 0.42em;  /* ends under the last I, before the trailing spacing */
+  bottom: -0.16em;
+  height: 2px;
+  background: linear-gradient(to right, transparent, var(--gold-bright) 12%, var(--gold-bright) 88%, transparent);
   pointer-events: none;
 }
+.wordmark::after {
+  content: '';
+  position: absolute;
+  right: 0.02em;
+  top: 0.3em;
+  width: 0.07em;
+  height: 0.5em;
+  /* A single brush stroke: full at the top, tapering to a point. */
+  border-radius: 0.04em 0.04em 50% 50%;
+  clip-path: polygon(0 0, 100% 0, 70% 100%, 35% 100%);
+  transform: rotate(8deg);
+  background: linear-gradient(to bottom, var(--gold-bright) 55%, color-mix(in srgb, var(--gold-bright) 30%, transparent));
+  pointer-events: none;
+}
+
 /* Spheres fade out at the hero's foot instead of being sliced off. */
 .medallion-stage {
   -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent),
