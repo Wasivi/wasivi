@@ -6,3 +6,9 @@ screenshots
 test-results
 playwright-report
 .vite
+
+# Local-only: never ship these (unused 3D models, old demo, tool settings)
+.mcp.json
+netlify.toml
+public/models/
+public/images/How_We_Work/WASIVI_How_We_Work_Scroll_Demo-2.html
