@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Nav from '../components/Nav';
 import styles from './Faq.module.css';
 
@@ -65,37 +65,39 @@ const SECTIONS = [
   },
 ];
 
-function QA({ q, a }) {
+// The FAQ reads like a text conversation: each question is a message bubble
+// sized to its words, with the + right beside them, alternating right and
+// left down the page. Opening one brings the answer in as a reply bubble on
+// the other side.
+function QA({ q, a, side }) {
+  const [open, setOpen] = useState(false);
   return (
-    <details
-      className={styles.qa}
-      onToggle={(e) => {
-        const icon = e.currentTarget.querySelector('[data-toggle-icon]');
-        if (icon) icon.textContent = e.currentTarget.open ? '−' : '+';
-      }}
-    >
-      <summary>
-        {q}
-        <span className={styles.toggleIcon} data-toggle-icon>+</span>
-      </summary>
-      <div className={styles.answer}>{a}</div>
-    </details>
+    <div className={`${styles.qa} ${side === 'right' ? styles.right : styles.left}`}>
+      <button type="button" className={styles.question} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <span>{q}</span>
+        <span className={styles.toggleIcon} aria-hidden="true">{open ? '−' : '+'}</span>
+      </button>
+      {open && <div className={styles.answer}>{a}</div>}
+    </div>
   );
 }
 
 export default function Faq({ embedded }) {
   useEffect(() => { if (!embedded) document.title = 'WASIVI — FAQ'; }, [embedded]);
+  let n = 0; // alternates right / left across the whole conversation
 
   return (
     <>
       {!embedded && <Nav />}
       <div className={styles.wrap}>
-        <h1 className={styles.title}>FAQ</h1>
+        <div className={styles.eyebrow}>FAQ</div>
+        <h1 className={styles.title}>Questions, answered.</h1>
         {SECTIONS.map((section) => (
           <div key={section.label}>
+            {/* Like the day divider in a message thread. */}
             <div className={styles.sectionLabel}>{section.label}</div>
             {section.items.map((item) => (
-              <QA key={item.q} q={item.q} a={item.a} />
+              <QA key={item.q} q={item.q} a={item.a} side={n++ % 2 === 0 ? 'right' : 'left'} />
             ))}
           </div>
         ))}
