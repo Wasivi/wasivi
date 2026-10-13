@@ -22,6 +22,10 @@ const medallionPos = new THREE.Vector3();
 const medallionScale = { value: 1 };
 // How hard it's twirling right now (0–1), so the molecules swirl with it.
 const twirl = { value: 0 };
+// Bumped each time the medallion starts surging forward: the spheres burst
+// out of it. Starts at 1 so they burst out on arrival too.
+const burst = { count: 1 };
+const BURST_AT = 0.12; // share of the cycle, early in the surge
 
 // The choreography, one cycle every ~16s: it surges from deep at the back
 // all the way up to the front, holds there a moment, then twirls back into
@@ -288,6 +292,7 @@ function Medallion({ pointer, layout }) {
   const rock = useRef();
   const spin = useRef();
   const t = useRef(0);
+  const prevPh = useRef(null);
   const camera = useThree((st) => st.camera);
   const aspect = useThree((st) => st.size.width / st.size.height);
 
@@ -308,6 +313,8 @@ function Medallion({ pointer, layout }) {
 
     // Where it is in the cycle: surging forward, holding, or twirling back.
     const ph = ((time + CYCLE_START) % CYCLE) / CYCLE;
+    if (prevPh.current !== null && prevPh.current < BURST_AT && ph >= BURST_AT) burst.count++;
+    prevPh.current = ph;
     let z;
     let swing = 0;
     let boost = 0;
@@ -557,6 +564,7 @@ function Molecules({ count, pointer }) {
   const camera = useThree((s) => s.camera);
   const nSilver = Math.round(count * 0.35);
   const nGold = count - nSilver;
+  const lastBurst = useRef(0);
 
   const motes = useMemo(() => {
     const list = [];
@@ -575,6 +583,7 @@ function Molecules({ count, pointer }) {
         thrower: i % 6 === 0,
         nextThrow: 2 + i * 0.9 + Math.random() * 4,
         loose: 0,
+        launchAt: -1, // while waiting to burst out it sits inside the medallion
         pos: new THREE.Vector3(),
         vel: new THREE.Vector3(),
         placed: false,
@@ -611,6 +620,13 @@ function Molecules({ count, pointer }) {
     tmp.hand.copy(camera.position).addScaledVector(tmp.dir, k);
     const reach = 0.55 * sc;
 
+    // A burst: every sphere is pulled inside the medallion, then they shoot
+    // out one after another, fast, overshooting before they settle.
+    if (lastBurst.current !== burst.count && !prefersReducedMotion) {
+      lastBurst.current = burst.count;
+      motes.forEach((m, i) => { m.launchAt = t + i * 0.035; m.pos.copy(medallionPos); m.vel.set(0, 0, 0); });
+    }
+
     let gi = 0;
     let si = 0;
     motes.forEach((m, i) => {
@@ -628,6 +644,23 @@ function Molecules({ count, pointer }) {
       ).multiplyScalar(sc * 0.5).add(medallionPos);
 
       if (!m.placed) { m.pos.copy(tmp.target); m.placed = true; }
+      let grow = 1;
+      if (m.launchAt > 0) {
+        if (t < m.launchAt) {
+          // Still inside: tucked in the centre of the medallion, small.
+          m.pos.copy(medallionPos);
+          grow = 0.2;
+          m.vel.set(0, 0, 0);
+        } else {
+          // Launch: shot out along its orbit direction, toward the viewer a
+          // little, with a kick — it overshoots and springs back.
+          tmp.d.copy(tmp.target).sub(medallionPos).normalize();
+          tmp.d.z += 0.35;
+          m.vel.copy(tmp.d).multiplyScalar(sc * (5.5 + Math.random() * 3));
+          m.loose = 2.4;
+          m.launchAt = -1;
+        }
+      }
       // Thrown in: launched from beyond the edge of the screen, close to
       // the viewer, hard toward its orbit — it overshoots and bounces in.
       if (m.thrower && !prefersReducedMotion && t > m.nextThrow) {
@@ -649,7 +682,7 @@ function Molecules({ count, pointer }) {
       m.vel.multiplyScalar(Math.exp(-dt * (m.loose > 0 ? 0.9 : 2.6)));
       m.pos.addScaledVector(m.vel, dt);
 
-      tmp.s.setScalar(m.size * sc * 0.5);
+      tmp.s.setScalar(m.size * sc * 0.5 * grow);
       tmp.m.compose(m.pos, tmp.q, tmp.s);
       if (i < nSilver) silver.current.setMatrixAt(si++, tmp.m);
       else gold.current.setMatrixAt(gi++, tmp.m);
