@@ -105,13 +105,13 @@ const LAYOUTS = [
   { art: { x: 0.5, y: 0.7, w: 0.9, floor: true, pad: 1.03 }, text: { left: '20%', right: '20%', top: '10%' }, center: true, gap: 4 },
   // 09 direct leadership (principle): centred and symmetrical, words below
   // (tighter margins so it can be ~15% larger: about 787px wide at 1440)
-  { art: { x: 0.5, y: 0.38, w: 0.547, pad: 1.02, menuClearance: 76 }, text: { left: '20%', right: '20%', bottom: '1.2%' }, center: true, gap: 2 },
+  { art: { x: 0.5, y: 0.38, w: 0.547, pad: 1.02, menuClearance: 76 }, text: { left: '20%', right: '20%', bottom: '58px' }, center: true, gap: 2 },
   // 10 AI & human review (principle): the whole sculpture large at the top,
   // filling the space down to the words, which sit tight together below
-  { art: { x: 0.5, y: 0.4, w: 0.8 }, text: { left: '18%', right: '18%', bottom: '3%' }, center: true, strong: true },
+  { art: { x: 0.5, y: 0.4, w: 0.8 }, text: { left: '18%', right: '18%', bottom: '58px' }, center: true, strong: true },
   // 11 what you take forward: the finale — the finished piece, wider than
   // the frame, coming in from both sides; the words sit on a pool of black
-  { art: { x: 0.5, y: 0.5, w: 1.625 }, text: { left: '12%', right: '12%', bottom: '4%' }, center: true, behind: true, pool: true },
+  { art: { x: 0.5, y: 0.5, w: 1.625 }, text: { left: '12%', right: '12%', bottom: '64px' }, center: true, behind: true, pool: true },
 ];
 
 // The page plays as a show: nothing to press or scroll. Each scene stays up
@@ -245,15 +245,19 @@ export default function HowWeWork({ embedded, active = true }) {
             )}
           </div>
         </div>
-        {/* Flip through at your own pace: back, where you are, next. */}
-        <nav className={styles.pager} aria-label="Slides">
-          <button type="button" onClick={() => go(scene - 1)} disabled={scene === 0} aria-label="Previous slide">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
-          </button>
-          <span className={styles.count}>{String(scene + 1).padStart(2, '0')} / {N}</span>
-          <button type="button" onClick={() => go(scene + 1)} disabled={scene === N - 1} aria-label="Next slide">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
-          </button>
+        {/* One little circle per slide: the filled one is where you are;
+            tap any to jump there. */}
+        <nav className={styles.dots} aria-label="Slides">
+          {SCENES.map((sc, i) => (
+            <button
+              key={i}
+              type="button"
+              className={i === scene ? styles.dotOn : styles.dot}
+              onClick={() => go(i)}
+              aria-label={`Slide ${i + 1}: ${sc.stage}`}
+              aria-current={i === scene ? 'step' : undefined}
+            />
+          ))}
         </nav>
       </section>
     </main>

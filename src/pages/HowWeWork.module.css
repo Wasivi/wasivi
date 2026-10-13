@@ -146,47 +146,40 @@
 .receive b { color: var(--gold-soft); font-weight: 600; }
 .center .statement, .center .receive { max-width: 56ch; }
 
-.pager {
+.dots {
   position: absolute;
   z-index: 6;
-  right: 32px;
-  bottom: 24px;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px;
-  border-radius: 999px;
-  /* A small pill of the stage colour, so the controls read over the gold. */
-  background: color-mix(in srgb, var(--stage) 82%, transparent);
-  backdrop-filter: blur(6px);
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  gap: 2px;
+  padding: 0; /* not the site menu's spacing */
 }
-.pager button {
-  width: 40px;
-  height: 40px;
+.dot, .dotOn {
+  /* A generous tap area around a small circle. */
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
-  border: 1px solid var(--rule);
+}
+.dot::before, .dotOn::before {
+  content: '';
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: transparent;
-  color: var(--paper);
-  cursor: pointer;
-  transition: border-color 0.2s, color 0.2s;
+  border: 1px solid var(--muted);
+  box-shadow: 0 0 6px var(--stage);
+  transition: background 0.3s, border-color 0.3s, transform 0.3s;
 }
-.pager button:hover:not(:disabled) { border-color: var(--gold-bright); color: var(--gold-bright); }
-.pager button:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 2px; }
-.pager button:disabled { opacity: 0.3; cursor: default; }
-.pager svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.count {
-  min-width: 56px;
-  text-align: center;
-  font-size: var(--type-label);
-  letter-spacing: 0.15em;
-  font-variant-numeric: tabular-nums;
-  color: var(--paper);
-}
+.dot:hover::before { border-color: var(--gold-bright); }
+.dotOn::before { background: var(--gold-bright); border-color: var(--gold-bright); transform: scale(1.25); }
+.dot:focus-visible, .dotOn:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 0; border-radius: 50%; }
 
 /* Short laptop screens: keep the headline from crowding the statement. */
 @media (max-height: 760px) and (min-width: 801px) {
@@ -211,6 +204,5 @@
   .title { font-size: 30px; margin-bottom: 14px; }
   .statement { font-size: 16px; }
   .receive { margin-top: 14px; font-size: 13px; }
-  .pager { right: 5%; bottom: 12px; gap: 10px; }
-  .pager button { width: 36px; height: 36px; }
+  .dots { bottom: 10px; }
 }
