@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 const LETTERS = 'WASIVI'.split('');
-const LANDING_LETTERS = [0, 2]; // the W and the S
+const LANDING_LETTERS = [0, 1, 2, 3, 4, 5]; // every letter, not just a few
 const ABOVE = 160; // px of falling room above the letters
 const MAX_FLAKES = 46;
 const GOLD = [244, 219, 110];
