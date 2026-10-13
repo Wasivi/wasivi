@@ -17,15 +17,18 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: 50% 28%; /* keeps the face centred in the oval */
   /* No hard rectangle: the photo melts into the page on every side, so it
      never draws a corner or a border. */
   -webkit-mask-image: radial-gradient(closest-side, #000 62%, transparent 100%);
   mask-image: radial-gradient(closest-side, #000 62%, transparent 100%);
 }
 .text-col { display: flex; flex-direction: column; justify-content: center; padding: 60px 64px 60px 56px; }
-.name-line { font-size: 21px; letter-spacing: 0.02em; color: var(--gold-bright); margin-bottom: 28px; line-height: 1.4; }
+.name-line { font-size: 21px; font-weight: 700; letter-spacing: 0.02em; color: var(--gold-bright); margin-bottom: 26px; line-height: 1.4; }
 /* Tighter lines and paragraphs: it reads as a story, not a poster. */
-.bio { font-size: 17px; line-height: 1.42; color: var(--body); max-width: 600px; }
+/* The bio in a plain, regular-weight face: easy to read, not bold. */
+.bio { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 400; line-height: 1.6; color: var(--body); max-width: 600px; }
+.bio strong { font-weight: 600; }
 .bio p { margin: 0 0 14px; }
 @media (max-width: 900px) {
   .split { grid-template-columns: 1fr; }

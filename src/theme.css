@@ -95,7 +95,7 @@ nav.hero-nav { padding: 0; margin-top: 24px; }
   background: var(--gold-bright);
 }
 @media (max-width: 800px) { .site-brand { font-size: 15px; letter-spacing: 0.28em; } }
-nav.site-nav { padding: 0; gap: 26px; font: inherit; letter-spacing: inherit; }
+nav.site-nav { padding: 0; gap: 26px; font: inherit; font-weight: 700; letter-spacing: inherit; }
 nav.site-nav a { color: var(--faint); }
 nav.site-nav a:hover { color: var(--muted); }
 nav.site-nav a.active { color: var(--gold-bright); }

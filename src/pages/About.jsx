@@ -10,7 +10,7 @@ export default function About({ embedded }) {
       {!embedded && <Nav />}
       <div className="split">
         <div className="photo-col">
-          <img className="photo-real" src="/images/about-photo.png" alt="Natalie Walker" />
+          <img className="photo-real" src="/images/about-photo-natalie.jpg" alt="Natalie Walker" />
         </div>
         <div className="text-col">
           <div className="name-line">I'm Natalie Walker — a modern-day Renaissance woman, and founder of WASIVI.</div>
