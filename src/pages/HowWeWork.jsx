@@ -97,7 +97,7 @@ const LAYOUTS = [
   { art: { x: 0.86, y: 0.6, w: 1.05 }, text: { left: '6%', top: '13%', width: '31%' } },
   // 06 testing: sculpture large on the right, off the edge; an extra-large
   // headline high on the left, clear of it
-  { art: { x: 0.8, y: 0.5, w: 0.84 }, text: { left: '6%', top: '13%', width: '40%' }, scrim: true, big: true },
+  { art: { x: 0.8, y: 0.5, w: 0.84 }, text: { left: '6%', top: '13%', width: '40%' }, scrim: true },
   // 07 phased delivery: sculpture off the left edge; words right
   { art: { x: 0.14, y: 0.56, w: 0.98 }, text: { left: '64%', width: '31%' }, middle: true },
   // 08 handoff: words high and centred; the whole sculpture beneath them,
@@ -138,6 +138,17 @@ export default function HowWeWork({ embedded, active = true }) {
 
   useEffect(() => { if (!embedded) document.title = 'WASIVI — How We Work'; }, [embedded]);
   const elapsedRef = useRef(STARTS[START_SCENE]);
+  // Bumped when the visitor jumps to a slide, so the show restarts its clock
+  // from there (even after it has finished).
+  const [jump, setJump] = useState(0);
+
+  // Back / next: jump straight to a slide; the show carries on from it.
+  const go = (i) => {
+    const to = Math.max(0, Math.min(N - 1, i));
+    elapsedRef.current = STARTS[to] + 0.001;
+    setScene(to);
+    setJump((j) => j + 1);
+  };
 
   useEffect(() => {
     if (!active) return undefined;
@@ -155,7 +166,19 @@ export default function HowWeWork({ embedded, active = true }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [active]);
+  }, [active, jump]);
+
+  // Arrow keys flip slides while the show is on screen.
+  useEffect(() => {
+    if (!active) return undefined;
+    const onKey = (e) => {
+      if (e.target.closest?.('input, textarea, select')) return;
+      if (e.key === 'ArrowRight') { e.preventDefault(); go(scene + 1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); go(scene - 1); }
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  });
 
   const s = SCENES[scene];
   const layout = LAYOUTS[scene];
@@ -208,7 +231,6 @@ export default function HowWeWork({ embedded, active = true }) {
             layout.center && styles.center,
             layout.middle && styles.middle,
             layout.scrim && styles.scrim,
-            layout.big && styles.big,
             layout.pool && styles.pool,
             layout.strong && styles.strong,
           ].filter(Boolean).join(' ')}
@@ -223,7 +245,16 @@ export default function HowWeWork({ embedded, active = true }) {
             )}
           </div>
         </div>
-        <div className={styles.count}>{String(scene + 1).padStart(2, '0')} / {N}</div>
+        {/* Flip through at your own pace: back, where you are, next. */}
+        <nav className={styles.pager} aria-label="Slides">
+          <button type="button" onClick={() => go(scene - 1)} disabled={scene === 0} aria-label="Previous slide">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+          </button>
+          <span className={styles.count}>{String(scene + 1).padStart(2, '0')} / {N}</span>
+          <button type="button" onClick={() => go(scene + 1)} disabled={scene === N - 1} aria-label="Next slide">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </nav>
       </section>
     </main>
   );

@@ -13,6 +13,15 @@
   --panel: #101010;       /* dropdowns */
   --panel-2: #17160f;     /* raised panels */
   --stage: #0b0a08;       /* How We Work's sculpture stage */
+
+  /* One type scale for the whole site. Every page uses these, so the same
+     kind of text is always the same size. */
+  --type-display: clamp(38px, 4.4vw, 68px); /* slide / section headlines */
+  --type-title: 30px;   /* page titles: FAQ, Projects */
+  --type-lead: 18px;    /* the main sentence under a headline */
+  --type-body: 16px;    /* reading text: bios, answers, project text */
+  --type-small: 14px;   /* secondary lines: "You receive", dates, notes */
+  --type-label: 12px;   /* small caps labels: eyebrows, section labels */
   color-scheme: dark;
 }
 

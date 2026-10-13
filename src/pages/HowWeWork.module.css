@@ -47,7 +47,6 @@
 }
 .middle { display: flex; flex-direction: column; justify-content: center; }
 .center { text-align: center; }
-.big .title { font-size: clamp(46px, 5.8vw, 92px); }
 .center .statement, .center .receive { margin-left: auto; margin-right: auto; }
 
 /* Where the words lie over the sculpture's edge, a soft halo of the stage
@@ -78,14 +77,6 @@
 }
 .pool .words { position: relative; }
 
-/* Stronger, tighter type for the closing slides: a bold, larger label;
-   larger statement and "You receive"; lines set closer together. */
-.strong .eyebrow { font-size: 15px; font-weight: 600; letter-spacing: 0.28em; margin-bottom: 18px; }
-.strong .title { margin-bottom: 18px; }
-.strong .statement { font-size: 19px; font-weight: 400; line-height: 1.55; max-width: 60ch; }
-.strong .receive { font-size: 18px; font-weight: 400; line-height: 1.5; margin-top: 14px; max-width: 62ch; color: var(--body); }
-.strong .receive b { font-weight: 600; }
-
 /* The finale's words sit straight on the gold: no pool behind them, just a
    shadow under each letter so they lift off the metal. The label is bolder
    and larger, and "You receive" larger too (still light). */
@@ -96,16 +87,13 @@
     0 0 30px rgb(0 0 0 / 0.55);
 }
 .pool .eyebrow {
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.28em;
   /* Pale champagne: gold text on gold would vanish. */
   color: #f3e7bd;
 }
 /* The finale's words sit on the gold, so they stay light in both themes. */
 .pool .title { color: #fbf8f1; }
-.pool .statement { font-size: 19px; font-weight: 400; color: #fbf8f1; max-width: 60ch; }
-.pool .receive { font-size: 18px; font-weight: 400; color: #ebe6da; max-width: 62ch; }
+.pool .statement { color: #fbf8f1; }
+.pool .receive { color: #ebe6da; }
 .pool .receive b { color: #f3e7bd; font-weight: 600; }
 .pool .eyebrow, .pool .statement, .pool .receive {
   text-shadow:
@@ -122,52 +110,82 @@
 @media (prefers-reduced-motion: reduce) { .words { animation: none; } }
 
 .eyebrow {
-  font-size: 11px;
-  letter-spacing: 0.3em;
+  font-size: var(--type-label);
+  font-weight: 600;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
   color: var(--gold-soft);
-  margin-bottom: 28px;
+  margin-bottom: 22px;
 }
 .title {
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(38px, 4.4vw, 68px);
+  font-size: var(--type-display);
   font-weight: 400;
   line-height: 1.02;
   letter-spacing: -0.02em;
   text-wrap: balance;
-  margin: 0 0 28px;
+  margin: 0 0 22px;
   color: var(--paper);
 }
 .statement {
-  font-size: 16px;
-  font-weight: 300;
-  line-height: 1.7;
+  font-size: var(--type-lead);
+  font-weight: 400;
+  line-height: 1.55;
   margin: 0;
   color: var(--body);
   max-width: 44ch;
 }
 .receive {
-  margin: 26px 0 0;
-  max-width: 44ch;
-  font-size: 14px;
-  font-weight: 300;
-  line-height: 1.6;
+  margin: 16px 0 0;
+  max-width: 48ch;
+  font-size: var(--type-body);
+  font-weight: 400;
+  line-height: 1.55;
   color: var(--muted);
 }
-.receive b { color: var(--gold-soft); font-weight: 400; }
+.receive b { color: var(--gold-soft); font-weight: 600; }
 .center .statement, .center .receive { max-width: 56ch; }
 
-.count {
-  pointer-events: none;
+.pager {
   position: absolute;
-  z-index: 1;
-  right: 36px;
-  bottom: 30px;
+  z-index: 6;
+  right: 32px;
+  bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 999px;
+  /* A small pill of the stage colour, so the controls read over the gold. */
+  background: color-mix(in srgb, var(--stage) 82%, transparent);
+  backdrop-filter: blur(6px);
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  font-size: 12px;
+}
+.pager button {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--paper);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.pager button:hover:not(:disabled) { border-color: var(--gold-bright); color: var(--gold-bright); }
+.pager button:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 2px; }
+.pager button:disabled { opacity: 0.3; cursor: default; }
+.pager svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.count {
+  min-width: 56px;
+  text-align: center;
+  font-size: var(--type-label);
   letter-spacing: 0.15em;
-  color: var(--faint);
-  text-shadow: 0 0 12px var(--stage), 0 0 24px var(--stage);
+  font-variant-numeric: tabular-nums;
+  color: var(--paper);
 }
 
 /* Short laptop screens: keep the headline from crowding the statement. */
@@ -191,7 +209,8 @@
   .center .statement, .center .receive { margin-left: 0; margin-right: 0; }
   .eyebrow { margin-bottom: 12px; }
   .title { font-size: 30px; margin-bottom: 14px; }
-  .statement { font-size: 15px; }
+  .statement { font-size: 16px; }
   .receive { margin-top: 14px; font-size: 13px; }
-  .count { right: 7%; bottom: 18px; }
+  .pager { right: 5%; bottom: 12px; gap: 10px; }
+  .pager button { width: 36px; height: 36px; }
 }
