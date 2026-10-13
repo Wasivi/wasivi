@@ -5,7 +5,7 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 32px 24px 60px;
+  padding: 32px 24px 28px;
 }
 .mark-placeholder {
   position: relative;
@@ -39,10 +39,10 @@
   line-height: 1;
   color: var(--wordmark);
 }
-.social-row { margin-top: 34px; display: flex; gap: 24px; align-items: center; }
+.social-row { margin-top: 18px; display: flex; gap: 24px; align-items: center; }
 .social-row a { color: var(--chrome); text-decoration: none; display: flex; }
 .social-row svg { width: 18px; height: 18px; }
-.tagline { margin-top: 20px; color: var(--lightgray); font-size: 18px; letter-spacing: 0.05em; }
+.tagline { margin-top: 12px; line-height: 1.4; color: var(--lightgray); font-size: 18px; letter-spacing: 0.05em; }
 
 /* 3D medallion: the canvas overflows the mark box so dust and haze can drift
    past the circle and fade into the page instead of being clipped by it. */
@@ -173,3 +173,7 @@
     drop-shadow(0 6px 7px rgb(40 38 34 / 0.2))
     drop-shadow(0 14px 20px rgb(40 38 34 / 0.13));
 }
+
+/* The hero menu sits close under the tagline so the whole stack fits on
+   one screen. */
+.hero nav.hero-nav { margin-top: 16px; }
