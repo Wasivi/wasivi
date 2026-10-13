@@ -7,7 +7,7 @@
 }
 .eyebrow {
   text-align: center;
-  font-size: var(--type-label);
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.28em;
   text-transform: uppercase;
@@ -27,7 +27,7 @@
    divider. */
 .sectionLabel {
   text-align: center;
-  font-size: var(--type-label);
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.22em;
   text-transform: uppercase;

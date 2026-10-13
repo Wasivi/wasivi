@@ -106,7 +106,7 @@ nav.hero-nav { padding: 0; margin-top: 24px; }
 @media (max-width: 800px) { .site-brand { font-size: 15px; letter-spacing: 0.28em; } }
 /* Bold and readable: a touch larger than the corner labels, in a firmer
    colour, so the weight actually shows. */
-nav.site-nav { padding: 0; gap: 28px; font: inherit; font-size: 13px; font-weight: 700; letter-spacing: 0.18em; }
+nav.site-nav { padding: 0; gap: 28px; font: inherit; font-family: 'Engravers Gothic', 'Copperplate', Garamond, serif; font-size: 14px; font-weight: 700; letter-spacing: 0.14em; }
 nav.site-nav a { color: var(--muted); }
 nav.site-nav a:hover { color: var(--paper); }
 nav.site-nav a.active { color: var(--gold-bright); }
