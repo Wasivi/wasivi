@@ -37,6 +37,14 @@ direction (composition, motion, interactivity, light mode):
 - Dev only: `/?angle=140` freezes the medallion's spin at that many degrees,
   for inspecting and screenshotting a specific view.
 
+## Projects are private
+
+- The public Projects section is a login (`src/pages/Projects.jsx`). Names
+  and passwords are given out by Natalie on request (info@wasivi.com).
+- The project list lives in `private/ProjectsList.jsx`, which nothing in
+  `src/` imports, so it never reaches the site bundle. Never import it into
+  the public site; once real accounts exist, serve it only after login.
+
 ## Look and feel
 
 - Gold is brass/olive, like the motif: brand `--gold-bright` is `#a89c3e`.
