@@ -40,6 +40,10 @@
   bottom: var(--b);
   width: var(--w);
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  /* Drags pass through the words to the sculpture beneath, so you can turn
+     it from anywhere on the slide. */
+  pointer-events: none;
+  user-select: none;
 }
 .middle { display: flex; flex-direction: column; justify-content: center; }
 .center { text-align: center; }
@@ -154,6 +158,7 @@
 .center .statement, .center .receive { max-width: 56ch; }
 
 .count {
+  pointer-events: none;
   position: absolute;
   z-index: 1;
   right: 36px;

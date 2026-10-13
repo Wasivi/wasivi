@@ -111,7 +111,11 @@ function buildHeight(skinImg, chanImg, artImg) {
   for (let i = 0; i < w * h; i++) {
     // The edge rolls over gently from zero on the outline: never steep
     // enough for the design to smear into plain metal when seen side-on.
-    const body = smoothstep(0.5, 1.0, rim[i]);
+    // A round edge, like a river stone: the surface leaves the outline
+    // straight up (a quarter circle), so front and back flow into each
+    // other with no pinched seam where they meet.
+    const t = Math.min(1, Math.max(0, (rim[i] - 0.5) / 0.5));
+    const body = Math.sqrt(1 - (1 - t) * (1 - t));
     const crown = smoothstep(0.25, 1.0, dome[i]);
     // Carved in all over, edge included: the artwork's lines are cut into
     // the whole surface, and the rolled edge carries grooves that follow
@@ -253,7 +257,7 @@ const fragmentShader = /* glsl */ `
   void main() {
     vec4 sk = texture2D(uSkin, vTc);
     float shape = smoothstep(0.85, 0.97, sk.r); // the locked almond outline, crisp
-    if (shape < 0.02) discard;
+    if (shape < 0.5) discard; // a solid edge: no see-through fringe where front meets back
 
     vec3 art = texture2D(uArt, vTc).rgb;
     float lum = dot(art, vec3(0.299, 0.587, 0.114));
@@ -314,14 +318,16 @@ const fragmentShader = /* glsl */ `
 
     // The piece brightens a touch as it breathes in, each part on its own.
     lit *= 0.95 + 0.08 * uBreath + 0.06 * vBreath;
-    gl_FragColor = vec4(lit, smoothstep(0.02, 0.6, shape));
+    gl_FragColor = vec4(lit, 1.0);
   }
 `;
 
 function Sculpture({ progress }) {
   const light = useTheme() === 'light';
   const material = useRef();
-  const mesh = useRef();
+  const mesh = useRef(); // the whole sculpture: front and back
+  const front = useRef();
+  const back = useRef();
   const [height, setHeight] = useState(null);
 
   useEffect(() => {
@@ -372,10 +378,13 @@ function Sculpture({ progress }) {
   }, []);
 
   uniforms.uHeight.value = height;
+  // The back shares everything with the front except its own normal turn.
+  const backUniforms = useMemo(() => ({ ...uniforms, uNormalMat: { value: new THREE.Matrix3() } }), [uniforms]);
+  const geometry = useMemo(() => new THREE.PlaneGeometry(WIDTH, HEIGHT, 640, 420), []);
 
   useFrame((_, delta) => {
     const u = material.current?.uniforms;
-    if (!u || !mesh.current) return;
+    if (!u || !mesh.current || !front.current || !back.current) return;
     if (!prefersReducedMotion) u.uTime.value += Math.min(delta, 0.1);
     // Ease between night and daylight when the theme changes.
     u.uLight.value += ((light ? 1 : 0) - u.uLight.value) * Math.min(1, delta * 4);
@@ -395,22 +404,35 @@ function Sculpture({ progress }) {
     const breath = c * c * (3 - 2 * c);
     u.uBreath.value = breath;
     mesh.current.scale.set(1 + 0.025 * breath, 1 + 0.025 * breath, 1);
-    u.uNormalMat.value.getNormalMatrix(mesh.current.matrixWorld);
+    u.uNormalMat.value.getNormalMatrix(front.current.matrixWorld);
+    backUniforms.uNormalMat.value.getNormalMatrix(back.current.matrixWorld);
 
   });
 
   if (!height) return null;
+  // A whole object, not a picture: the back is the front's mirror image,
+  // carved outward the other way, so the two faces meet at the rim and it
+  // reads as solid from any side.
   return (
-    <mesh ref={mesh}>
-      <planeGeometry args={[WIDTH, HEIGHT, 640, 420]} />
-      <shaderMaterial
-        ref={material}
-        vertexShader={vertexShader}
-        fragmentShader={fragmentShader}
-        uniforms={uniforms}
-        transparent
-      />
-    </mesh>
+    <group ref={mesh}>
+      <mesh ref={front} geometry={geometry}>
+        <shaderMaterial
+          ref={material}
+          vertexShader={vertexShader}
+          fragmentShader={fragmentShader}
+          uniforms={uniforms}
+          transparent
+        />
+      </mesh>
+      <mesh ref={back} geometry={geometry} scale={[1, 1, -1]}>
+        <shaderMaterial
+          vertexShader={vertexShader}
+          fragmentShader={fragmentShader}
+          uniforms={backUniforms}
+          transparent
+        />
+      </mesh>
+    </group>
   );
 }
 
@@ -430,8 +452,61 @@ const FROZEN_YAW = import.meta.env.DEV
   ? new URLSearchParams(window.location.search).get('yaw')
   : null;
 
+// You can handle the sculpture: drag it (mouse, trackpad click-drag, or a
+// finger on a phone) to turn it all the way round, swipe sideways with two
+// fingers on a trackpad to spin it, pinch to bring it closer. A few seconds
+// after you let go it eases back to its place for the slide.
+function useHandling() {
+  const gl = useThree((s) => s.gl);
+  const hand = useRef({ yaw: 0, pitch: 0, zoom: 1, dragging: false, last: -1e9, x: 0, y: 0 });
+  useEffect(() => {
+    const el = gl.domElement;
+    const h = hand.current;
+    el.style.cursor = 'grab';
+    el.style.touchAction = 'pan-y'; // vertical swipes still scroll the page
+    const now = () => performance.now();
+    const down = (e) => {
+      h.dragging = true; h.x = e.clientX; h.y = e.clientY;
+      el.setPointerCapture?.(e.pointerId);
+      el.style.cursor = 'grabbing';
+    };
+    const move = (e) => {
+      if (!h.dragging) return;
+      h.yaw += (e.clientX - h.x) * 0.008;
+      h.pitch = Math.max(-1.2, Math.min(1.2, h.pitch + (e.clientY - h.y) * 0.006));
+      h.x = e.clientX; h.y = e.clientY; h.last = now();
+    };
+    const up = () => { h.dragging = false; h.last = now(); el.style.cursor = 'grab'; };
+    const wheel = (e) => {
+      if (e.ctrlKey) { // trackpad pinch
+        e.preventDefault();
+        h.zoom = Math.max(0.7, Math.min(1.8, h.zoom * Math.exp(-e.deltaY * 0.01)));
+        h.last = now();
+      } else if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) { // two-finger sideways swipe
+        e.preventDefault();
+        h.yaw -= e.deltaX * 0.006;
+        h.last = now();
+      }
+    };
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('wheel', wheel, { passive: false });
+    return () => {
+      el.removeEventListener('pointerdown', down);
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointercancel', up);
+      el.removeEventListener('wheel', wheel);
+    };
+  }, [gl]);
+  return hand;
+}
+
 function Placement({ place, children }) {
   const size = useThree((s) => s.size);
+  const hand = useHandling();
   const group = useRef();
   const lean = useRef(new THREE.Vector2());
   const t = useRef(0);
@@ -465,15 +540,27 @@ function Placement({ place, children }) {
     const scale = (hPx / pad) * unit / HEIGHT;
     goal.set((p.x - 0.5) * frameW, (size.height / 2 - cy) * unit, 0);
 
+    // Let go for a few seconds and it eases home: the nearest full turn,
+    // upright, its usual size.
+    const h = hand.current;
+    if (!h.dragging && performance.now() - h.last > 3000) {
+      const k = 1 - Math.exp(-dt * 1.2);
+      const home = Math.round(h.yaw / (Math.PI * 2)) * Math.PI * 2;
+      h.yaw += (home - h.yaw) * k;
+      h.pitch += (0 - h.pitch) * k;
+      h.zoom += (1 - h.zoom) * k;
+    }
+    const sized = scale * h.zoom;
+
     if (!placed.current || prefersReducedMotion) {
       g.position.copy(goal);
-      g.scale.setScalar(scale);
+      g.scale.setScalar(sized);
       placed.current = true;
     } else {
       // A slow, weighted glide to the new scene's place.
       const k = 1 - Math.exp(-dt * 1.4);
       g.position.lerp(goal, k);
-      g.scale.setScalar(THREE.MathUtils.lerp(g.scale.x, scale, k));
+      g.scale.setScalar(THREE.MathUtils.lerp(g.scale.x, sized, h.dragging ? 0.3 : k));
     }
 
     // It turns slowly in place and leans toward the pointer.
@@ -490,7 +577,7 @@ function Placement({ place, children }) {
       yaw = 0.3 * Math.sin(t.current * 0.16 - 0.6) + lean.current.x * 0.12;
       pitch = 0.08 + 0.07 * Math.sin(t.current * 0.11) - lean.current.y * 0.1;
     }
-    g.rotation.set(pitch, yaw, 0);
+    g.rotation.set(pitch + h.pitch, yaw + h.yaw, 0);
   });
 
   return <group ref={group}>{children}</group>;
