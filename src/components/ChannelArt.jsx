@@ -209,9 +209,17 @@ const vertexShader = /* glsl */ `
     float h = texture2D(uHeight, vTc).r;
     // The whole relief heaves up on the breath in and settles on the breath
     // out; each piece adds its own small breath on top.
-    float heave = 0.85 + 0.3 * uBreath;
-    float z = (h * heave + fill * 0.1 + b * 0.05 * step(0.001, h)) * uDepth;
-    vec4 world = modelMatrix * vec4(position.xy, z, 1.0);
+    float heave = 0.72 + 0.56 * uBreath;
+    // It morphs as it breathes: slow, soft swells drift across the body, so
+    // the shape itself changes, never just the size.
+    float drift = sin(uv.x * 3.1 + uTime * 0.31) * sin(uv.y * 2.4 - uTime * 0.23)
+                + 0.6 * sin((uv.x + uv.y) * 4.3 - uTime * 0.19);
+    float body = smoothstep(0.0, 0.2, h);
+    float z = (h * heave + drift * 0.09 * body + fill * 0.1 + b * 0.06 * step(0.001, h)) * uDepth;
+    // The outline swells out on the breath in, a little unevenly, like a
+    // chest rising.
+    vec2 xy = position.xy * (1.0 + 0.035 * uBreath + 0.012 * drift * uBreath);
+    vec4 world = modelMatrix * vec4(xy, z, 1.0);
     vWorld = world.xyz;
     gl_Position = projectionMatrix * viewMatrix * world;
   }
@@ -277,7 +285,16 @@ const fragmentShader = /* glsl */ `
     float ly = lumAt(vTc + vec2(0.0, f.y)) - lumAt(vTc - vec2(0.0, f.y));
     // Poured metal settles smooth, so the engraving fades under it.
     slope += vec2(lx, ly) * 6.0 * (1.0 - 0.7 * fill);
-    vec3 n = normalize(uNormalMat * vec3(-slope, 1.0));
+    vec3 nLocal = normalize(vec3(-slope, 1.0));
+    vec3 n = normalize(uNormalMat * nLocal);
+    // Never blank: where the surface turns steep (the rim, the tops and
+    // sides you see when it's turned), the picture's lines smear, so carve
+    // in contour lines that follow the shape, like a topographic map.
+    float steep = smoothstep(0.25, 0.75, 1.0 - nLocal.z);
+    float hv = texture2D(uHeight, vTc).r;
+    float g = abs(fract(hv * 34.0) - 0.5);
+    float groove = 1.0 - smoothstep(0.06, 0.16, g);
+    float ridge = 1.0 - smoothstep(0.0, 0.07, abs(g - 0.22));
 
     // Colour, as before: bronze skeleton through the walls, then gold and
     // silver along each channel.
@@ -318,6 +335,8 @@ const fragmentShader = /* glsl */ `
 
     // The piece brightens a touch as it breathes in, each part on its own.
     lit *= 0.95 + 0.08 * uBreath + 0.06 * vBreath;
+    lit *= 1.0 - 0.6 * groove * steep;
+    lit += ridge * steep * 0.18 * mix(vec3(0.9), normalize(col + 0.001) * 1.4, metalness);
     gl_FragColor = vec4(lit, 1.0);
   }
 `;
@@ -398,12 +417,12 @@ function Sculpture({ progress }) {
     params.needsUpdate = true;
     u.uSkinFill.value = clamp((q - schedule.skin.start) / (schedule.skin.end - schedule.skin.start)) * 1.4;
 
-    // One slow breath every ~10s. The mesh swells in place as it breathes
-    // in and settles as it breathes out; it never moves toward you.
-    const c = prefersReducedMotion ? 0.5 : 0.5 - 0.5 * Math.cos((u.uTime.value * 2 * Math.PI) / 10);
+    // One slow breath every ~9s: the shaders swell and morph the body on
+    // the breath in and let it settle on the breath out. It never moves
+    // toward you.
+    const c = prefersReducedMotion ? 0.5 : 0.5 - 0.5 * Math.cos((u.uTime.value * 2 * Math.PI) / 9);
     const breath = c * c * (3 - 2 * c);
     u.uBreath.value = breath;
-    mesh.current.scale.set(1 + 0.025 * breath, 1 + 0.025 * breath, 1);
     u.uNormalMat.value.getNormalMatrix(front.current.matrixWorld);
     backUniforms.uNormalMat.value.getNormalMatrix(back.current.matrixWorld);
 
