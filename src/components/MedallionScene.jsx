@@ -35,7 +35,7 @@ const CYCLE = 16;
 const SURGE = 0.45; // share of the cycle spent coming forward
 const HOLD = 0.12; // then a pause at the front
 const Z_BACK = -10;
-const Z_FRONT = 1.75;
+const Z_FRONT = 3.4; // comes out at you: about twice its home size
 const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 // Start partway through the surge, at its home depth, so the page opens on
 // it at its usual size (and frozen test views stay put).
@@ -583,7 +583,10 @@ function Molecules({ count, pointer }) {
         thrower: i % 6 === 0,
         nextThrow: 2 + i * 0.9 + Math.random() * 4,
         loose: 0,
-        launchAt: -1, // while waiting to burst out it sits inside the medallion
+        launchAt: -1,
+        // Every fourth flies straight out of the screen at the viewer.
+        flyer: i % 4 === 1,
+        fly: null, // while waiting to burst out it sits inside the medallion
         pos: new THREE.Vector3(),
         vel: new THREE.Vector3(),
         placed: false,
@@ -654,6 +657,24 @@ function Molecules({ count, pointer }) {
         } else {
           // Launch: shot out along its orbit direction, toward the viewer a
           // little, with a kick — it overshoots and springs back.
+          if (m.flyer) {
+            // Straight at the viewer, speeding up, ending huge just in
+            // front of the lens and a little off-centre, then it falls
+            // back into orbit.
+            const side = Math.random() < 0.5 ? -1 : 1;
+            m.fly = {
+              t0: t,
+              dur: 1.3 + Math.random() * 0.5,
+              from: m.pos.clone(),
+              // Relative to the lens, which may still be moving in.
+              offset: new THREE.Vector3(
+                side * (0.12 + Math.random() * 0.2),
+                (Math.random() - 0.4) * 0.3,
+                -0.7 - Math.random() * 0.45
+              ),
+              to: new THREE.Vector3(),
+            };
+          }
           tmp.d.copy(tmp.target).sub(medallionPos).normalize();
           tmp.d.z += 0.35;
           m.vel.copy(tmp.d).multiplyScalar(sc * (5.5 + Math.random() * 3));
@@ -670,9 +691,27 @@ function Molecules({ count, pointer }) {
         m.loose = 2.2;
         m.nextThrow = t + 10 + Math.random() * 9;
       }
+      if (m.fly) {
+        const q = (t - m.fly.t0) / m.fly.dur;
+        m.fly.to.copy(camera.position).add(m.fly.offset);
+        if (q < 1) {
+          m.pos.lerpVectors(m.fly.from, m.fly.to, q * q * q); // accelerating at you
+          m.vel.set(0, 0, 0);
+        } else {
+          m.fly = null;
+          m.loose = 2.6;
+        }
+      }
       m.loose = Math.max(0, m.loose - dt);
       // Spring home (springier while thrown, so it bounces), pushed away by
       // the hand, with damping.
+      if (m.fly) {
+        tmp.s.setScalar(m.size * sc * 0.5);
+        tmp.m.compose(m.pos, tmp.q, tmp.s);
+        if (i < nSilver) silver.current.setMatrixAt(si++, tmp.m);
+        else gold.current.setMatrixAt(gi++, tmp.m);
+        return;
+      }
       tmp.d.copy(tmp.target).sub(m.pos).multiplyScalar(m.loose > 0 ? 6 : 3.2);
       m.vel.addScaledVector(tmp.d, dt);
       tmp.d.copy(m.pos).sub(tmp.hand);
