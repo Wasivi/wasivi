@@ -65,7 +65,7 @@ def uri(svg):
 # Horizontal: starts at the left (the W), tapers out to the right; a slight
 # sag in the middle. Vertical: starts at the top, tapers down; slight bow.
 h = stroke(1000, 10, 7, 1.6, True, symmetric=True)
-v = stroke(1000, 10, 21, 1.4, False)
+v = stroke(1000, 10, 21, 3.2, False)  # a clear hand-pulled bow, not ruler-straight
 open(sys.argv[1], 'w').write(uri(h) + '\n' + uri(v) + '\n')
 open(sys.argv[1] + '.h.svg', 'w').write(h)
 open(sys.argv[1] + '.v.svg', 'w').write(v)

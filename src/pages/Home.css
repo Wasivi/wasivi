@@ -132,9 +132,9 @@
 .wordmark::after {
   right: -0.02em;
   bottom: 0.12em;
-  width: 0.13em;
+  width: 0.17em;
   height: 1.12em;
-  transform: rotate(6deg);
+  transform: rotate(13deg);
   transform-origin: 50% 100%;
   -webkit-mask: url('/images/brush-stroke.svg') center / 100% 100% no-repeat;
   mask: url('/images/brush-stroke.svg') center / 100% 100% no-repeat;
@@ -160,10 +160,16 @@
 }
 
 /* In daylight WASIVI is brushed silver: a soft sheen runs across the
-   letters, so it reads as metal rather than grey ink. */
+   letters, so it reads as metal rather than grey ink, and it stands off the
+   page on a drop shadow, as dimensional as it is on the dark page. */
 :root[data-theme="light"] .wordmark span[data-letter] {
   background: linear-gradient(170deg, #9aa0a6 0%, #6f757c 45%, #a7adb3 62%, #747a81 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  filter:
+    drop-shadow(0 -1px 0 rgb(255 255 255 / 0.9))
+    drop-shadow(0 2px 1px rgb(40 38 34 / 0.35))
+    drop-shadow(0 6px 8px rgb(40 38 34 / 0.18))
+    drop-shadow(0 14px 22px rgb(40 38 34 / 0.12));
 }
