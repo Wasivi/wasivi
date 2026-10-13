@@ -7,14 +7,16 @@ import './Home.css';
 // page text renders first and other pages never download it.
 const MedallionScene = lazy(() => import('../components/MedallionScene'));
 
-export default function Home({ embedded }) {
+// `active`: false while the hero is scrolled off screen, so the medallion
+// rests instead of drawing frames nobody sees.
+export default function Home({ embedded, active = true }) {
   useEffect(() => { if (!embedded) document.title = 'WASIVI'; }, [embedded]);
 
   return (
     <section className="hero">
       <div className="mark-placeholder mark-3d">
         <Suspense fallback={null}>
-          <MedallionScene />
+          <MedallionScene active={active} />
         </Suspense>
       </div>
       <Wordmark />

@@ -814,7 +814,7 @@ function Lighting() {
 
 // ---------------------------------------------------------------------------
 
-export default function MedallionScene() {
+export default function MedallionScene({ active = true }) {
   const pointer = useWindowPointer();
   const focus = useRef(CAMERA_END_Z);
   const [dpr, setDpr] = useState(1.75);
@@ -849,6 +849,7 @@ export default function MedallionScene() {
         camera={{ position: [0, 0, CAMERA_START_Z], fov: 30, near: 0.1, far: 60 }}
         gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
         dpr={dpr}
+        frameloop={active ? 'always' : 'never'} // rests while scrolled away
         shadows="soft"
         onCreated={() => setReady(true)}
       >

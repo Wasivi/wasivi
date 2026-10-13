@@ -26,6 +26,7 @@ export default function OnePage() {
   const navigate = useNavigate();
   const [current, setCurrent] = useState(() => byPath(location.pathname).id);
   const [showActive, setShowActive] = useState(false);
+  const [heroActive, setHeroActive] = useState(true);
   const arrived = useRef(false); // the first scroll to the opening section is done
 
   // Opening an address, or choosing a menu item: scroll to that section.
@@ -60,6 +61,9 @@ export default function OnePage() {
         }
         const how = document.getElementById('how-we-work')?.getBoundingClientRect();
         setShowActive(!!how && how.top < innerHeight * 0.6 && how.bottom > innerHeight * 0.4);
+        // The landing medallion only animates while any of the hero is on screen.
+        const hero = document.getElementById('home')?.getBoundingClientRect();
+        setHeroActive(!hero || hero.bottom > 0);
         setCurrent(found.id);
         if (arrived.current && found.path !== window.location.pathname) {
           navigate(found.path, { replace: true, state: { spy: true } });
@@ -88,7 +92,7 @@ export default function OnePage() {
       </div>
       {SECTIONS.map(({ id, Page }) => (
         <section key={id} id={id} className={`one-section one-${id}`}>
-          <Page embedded active={id === 'how-we-work' ? showActive : undefined} />
+          <Page embedded active={id === 'how-we-work' ? showActive : id === 'home' ? heroActive : undefined} />
         </section>
       ))}
     </>
