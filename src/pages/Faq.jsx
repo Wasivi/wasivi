@@ -97,7 +97,7 @@ export default function Faq({ embedded }) {
             {/* Like the day divider in a message thread. */}
             <div className={styles.sectionLabel}>{section.label}</div>
             {section.items.map((item) => (
-              <QA key={item.q} q={item.q} a={item.a} side={n++ % 2 === 0 ? 'right' : 'left'} />
+              <QA key={item.q} q={item.q} a={item.a} side={n++ % 2 === 0 ? 'left' : 'right'} />
             ))}
           </div>
         ))}
