@@ -1,7 +1,7 @@
 .split {
   display: grid;
-  grid-template-columns: minmax(0, 52%) minmax(0, 48%);
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
   padding-top: 40px;
   gap: 56px;
   max-width: 1400px;
@@ -11,7 +11,11 @@
 /* A large portrait beside the words. */
 /* The whole photo, never cropped, as wide as its column: the bio is long,
    so the portrait can be tall. */
-.photo-col { position: relative; aspect-ratio: 1016 / 1547; width: 100%; }
+/* The photo spans exactly the text: its top lines up with the name line,
+   its bottom with the closing line. The text sets the height; the photo
+   keeps its own shape and sits against the words. */
+.photo-col { position: relative; height: 100%; }
+.photo-col .photo-real { left: auto; right: 0; width: auto; aspect-ratio: 1016 / 1547; }
 .photo-real {
   position: absolute;
   inset: 0;
@@ -28,7 +32,8 @@
               linear-gradient(to bottom, transparent, #000 7%, #000 90%, transparent);
   mask-composite: intersect;
 }
-.text-col { display: flex; flex-direction: column; justify-content: center; padding: 40px 24px 40px 0; }
+.text-col { display: flex; flex-direction: column; justify-content: center; padding: 0 24px 0 0; }
+.bio p:last-child { margin-bottom: 0; }
 .name-line { font-size: 19px; font-weight: 700; letter-spacing: 0.02em; color: var(--gold-bright); margin-bottom: 26px; line-height: 1.4; }
 /* Tighter lines and paragraphs: it reads as a story, not a poster. */
 /* The bio in a plain, regular-weight face: easy to read, not bold. */
@@ -37,6 +42,7 @@
 .bio p { margin: 0 0 14px; }
 @media (max-width: 900px) {
   .split { grid-template-columns: 1fr; }
-  .photo-col { position: relative; top: 0; width: min(100%, 420px); margin: 0 auto; }
+  .photo-col { position: relative; top: 0; height: auto; width: min(100%, 420px); aspect-ratio: 1016 / 1547; margin: 0 auto; }
+  .photo-col .photo-real { left: 0; width: 100%; }
   .text-col { padding: 40px 28px 60px; }
 }

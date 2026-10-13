@@ -30,3 +30,4 @@ html { scroll-behavior: smooth; }
 /* Breathing room between sections, below the menu. */
 .one-about, .one-projects, .one-faq { padding-top: 88px; }
 .one-faq { padding-bottom: 40px; }
+.one-about { padding-bottom: 96px; }
