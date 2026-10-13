@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
 
-const COMPANY_ROUTES = ['/about', '/how-we-work', '/faq'];
+// STUDIO groups the sections in the order the page scrolls: About, How We
+// Work, Projects. FAQ follows on its own.
+const STUDIO_ROUTES = ['/about', '/how-we-work', '/projects'];
 
 export default function Nav({ variant }) {
   const location = useLocation();
@@ -17,7 +19,7 @@ export default function Nav({ variant }) {
     return () => document.removeEventListener('click', onDocClick);
   }, []);
 
-  const isCompanyActive = COMPANY_ROUTES.includes(location.pathname);
+  const isStudioActive = STUDIO_ROUTES.includes(location.pathname);
 
   const links = (
     <nav className={variant === 'hero' ? 'hero-nav' : 'site-nav'}>
@@ -27,19 +29,19 @@ export default function Nav({ variant }) {
       <div className="menu-item" ref={ref}>
         <a
           href="#"
-          className={isCompanyActive ? 'companyToggle active' : 'companyToggle'}
+          className={isStudioActive ? 'companyToggle active' : 'companyToggle'}
           onClick={(e) => { e.preventDefault(); setOpen((o) => !o); }}
         >
-          COMPANY
+          STUDIO
         </a>
         <div className={open ? 'dropdown companyDropdown open' : 'dropdown companyDropdown'} onClick={() => setOpen(false)}>
           <Link to="/about" className={location.pathname === '/about' ? 'active' : undefined}>About</Link>
           <Link to="/how-we-work" className={location.pathname === '/how-we-work' ? 'active' : undefined}>How We Work</Link>
-          <Link to="/faq" className={location.pathname === '/faq' ? 'active' : undefined}>FAQ</Link>
+          <Link to="/projects" className={location.pathname === '/projects' ? 'active' : undefined}>Projects</Link>
         </div>
       </div>
       <div className="menu-item">
-        <Link to="/projects" className={location.pathname === '/projects' ? 'active' : undefined}>PROJECTS</Link>
+        <Link to="/faq" className={location.pathname === '/faq' ? 'active' : undefined}>FAQ</Link>
       </div>
       <div className="menu-item">
         <a href="https://read.wasivi.com">SUBSTACK</a>
