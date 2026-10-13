@@ -96,8 +96,8 @@ const LAYOUTS = [
   // high in the open top-left, clear of it
   { art: { x: 0.86, y: 0.6, w: 1.05 }, text: { left: '6%', top: '13%', width: '31%' } },
   // 06 testing: sculpture large on the right, off the edge; an extra-large
-  // headline low left, over its edge
-  { art: { x: 0.8, y: 0.5, w: 0.84 }, text: { left: '6%', bottom: '8%', width: '42%' }, scrim: true, big: true },
+  // headline high on the left, clear of it
+  { art: { x: 0.8, y: 0.5, w: 0.84 }, text: { left: '6%', top: '13%', width: '40%' }, scrim: true, big: true },
   // 07 phased delivery: sculpture off the left edge; words right
   { art: { x: 0.14, y: 0.56, w: 0.98 }, text: { left: '64%', width: '31%' }, middle: true },
   // 08 handoff: words high and centred; the whole sculpture beneath them,
