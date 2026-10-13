@@ -47,6 +47,48 @@ export default function OnePage() {
     return undefined;
   }, [location.pathname, location.state]);
 
+  // Scrolling lands on whole sections, like turning pages: when you stop
+  // between two sections, the page glides on to the next one in the
+  // direction you were going (or back, if you were heading up). Inside a
+  // section taller than the screen (About, FAQ) you can scroll freely.
+  useEffect(() => {
+    let lastY = scrollY;
+    let dir = 0;
+    let timer = 0;
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const settle = () => {
+      const vh = innerHeight;
+      const y = scrollY;
+      const max = document.documentElement.scrollHeight - vh;
+      // Where the screen may rest: a section's top, or anywhere inside a
+      // tall section from its top until its bottom reaches the screen's.
+      const ranges = SECTIONS.map(({ id }) => document.getElementById(id))
+        .filter(Boolean)
+        .map((el) => {
+          const top = el.offsetTop;
+          return [top, Math.max(top, Math.min(max, top + el.offsetHeight - vh))];
+        });
+      if (ranges.some(([a, b]) => y >= a - 2 && y <= b + 2)) return; // resting well
+      const below = ranges.find(([a]) => a > y);
+      const above = [...ranges].reverse().find(([, b]) => b < y);
+      let target;
+      if (dir > 0) target = below ? below[0] : above?.[1];
+      else if (dir < 0) target = above ? above[1] : below?.[0];
+      else target = !below ? above?.[1] : !above ? below[0] : (below[0] - y < y - above[1] ? below[0] : above[1]);
+      if (target == null) return;
+      scrollTo({ top: target, behavior: reduce ? 'auto' : 'smooth' });
+    };
+    const onScroll = () => {
+      const y = scrollY;
+      if (y !== lastY) dir = Math.sign(y - lastY);
+      lastY = y;
+      clearTimeout(timer);
+      timer = setTimeout(settle, 160);
+    };
+    addEventListener('scroll', onScroll, { passive: true });
+    return () => { clearTimeout(timer); removeEventListener('scroll', onScroll); };
+  }, []);
+
   // As you scroll: the section filling the middle of the screen is current.
   useEffect(() => {
     let raf = 0;

@@ -23,11 +23,20 @@ html { scroll-behavior: smooth; }
 /* Over How We Work's dark stage the menu needs no backing of its own. */
 .one-header-clear { background: none; }
 
-/* Sections are scrolled to right at their top; the padding below leaves
-   room under the fixed menu. */
-.one-section { scroll-margin-top: 0; }
+/* Every section is at least one full screen, so no section shows the
+   next one peeking in. Sections are scrolled to right at their top; the
+   padding below leaves room under the fixed menu. */
+.one-section {
+  min-height: 100svh;
+  scroll-margin-top: 0;
+  box-sizing: border-box;
+}
+/* A short section (the Projects login) sits centred in its screen. */
+.one-projects { display: flex; flex-direction: column; justify-content: center; }
+.one-projects > * { width: 100%; }
 
 /* Breathing room between sections, below the menu. */
 .one-about, .one-projects, .one-faq { padding-top: 88px; }
+.one-projects { padding-bottom: 88px; }
 .one-faq { padding-bottom: 40px; }
 .one-about { padding-bottom: 96px; }

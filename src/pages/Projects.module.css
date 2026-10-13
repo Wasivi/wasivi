@@ -60,7 +60,7 @@
 @media (max-width: 640px) { .detailInner { padding: 60px 20px 70px; } }
 
 /* The login panel that stands in front of the private project list. */
-.login { max-width: 440px; margin: 20px auto 110px; padding: 0 24px; text-align: center; }
+.login { max-width: 440px; margin: 0 auto; padding: 0 24px; text-align: center; }
 .eyebrow { font-size: 16px; font-weight: 600; letter-spacing: 0.28em; text-transform: uppercase; color: var(--gold-bright); margin-bottom: 16px; }
 .loginTitle { font-size: var(--type-title); font-weight: 400; line-height: 1.2; color: var(--paper); margin: 0 0 10px; }
 .loginLead { font-size: 16px; color: var(--lightgray); margin: 0 0 30px; }
