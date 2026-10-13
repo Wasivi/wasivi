@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-// The sun/moon button at the end of the menu (as on HeatSafe). The site
+// The sun/moon button at the end of the menu . The site
 // starts dark; pressing it switches light/dark and remembers the choice.
 // index.html applies the saved choice before the page first paints.
 const KEY = 'wasivi-theme';
@@ -33,14 +33,14 @@ export function useTheme() {
 }
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState(currentTheme);
-  const dark = theme === 'dark';
+  // Read the page's actual theme (not a private copy), so every sun/moon
+  // button on the page stays in step when any one of them is pressed.
+  const dark = useTheme() === 'dark';
 
   function toggle() {
-    const next = dark ? 'light' : 'dark';
+    const next = currentTheme() === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = next;
     try { localStorage.setItem(KEY, next); } catch { /* private window: just don't remember */ }
-    setTheme(next);
   }
 
   return (
