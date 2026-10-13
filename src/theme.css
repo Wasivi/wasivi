@@ -95,9 +95,11 @@ nav.hero-nav { padding: 0; margin-top: 24px; }
   background: var(--gold-bright);
 }
 @media (max-width: 800px) { .site-brand { font-size: 15px; letter-spacing: 0.28em; } }
-nav.site-nav { padding: 0; gap: 26px; font: inherit; font-weight: 700; letter-spacing: inherit; }
-nav.site-nav a { color: var(--faint); }
-nav.site-nav a:hover { color: var(--muted); }
+/* Bold and readable: a touch larger than the corner labels, in a firmer
+   colour, so the weight actually shows. */
+nav.site-nav { padding: 0; gap: 28px; font: inherit; font-size: 13px; font-weight: 700; letter-spacing: 0.18em; }
+nav.site-nav a { color: var(--muted); }
+nav.site-nav a:hover { color: var(--paper); }
 nav.site-nav a.active { color: var(--gold-bright); }
 nav.site-nav .dropdown { top: 22px; font-size: 13px; letter-spacing: 0.06em; }
 @media (max-width: 800px) {

@@ -1,15 +1,17 @@
 .split {
   display: grid;
-  grid-template-columns: minmax(0, 47%) minmax(0, 53%);
+  grid-template-columns: minmax(0, 52%) minmax(0, 48%);
   align-items: start;
   padding-top: 40px;
-  gap: 24px;
+  gap: 56px;
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 4%;
 }
-/* A large portrait beside the words, never taller than most of the screen. */
-.photo-col { position: sticky; top: 80px; aspect-ratio: 1016 / 1547; width: min(100%, calc(86vh * 1016 / 1547)); margin: 0 auto; }
+/* A large portrait beside the words. */
+/* The whole photo, never cropped, as wide as its column: the bio is long,
+   so the portrait can be tall. */
+.photo-col { position: relative; aspect-ratio: 1016 / 1547; width: 100%; }
 .photo-real {
   position: absolute;
   inset: 0;
@@ -26,11 +28,11 @@
               linear-gradient(to bottom, transparent, #000 7%, #000 90%, transparent);
   mask-composite: intersect;
 }
-.text-col { display: flex; flex-direction: column; justify-content: center; padding: 60px 64px 60px 56px; }
-.name-line { font-size: 21px; font-weight: 700; letter-spacing: 0.02em; color: var(--gold-bright); margin-bottom: 26px; line-height: 1.4; }
+.text-col { display: flex; flex-direction: column; justify-content: center; padding: 40px 24px 40px 0; }
+.name-line { font-size: 19px; font-weight: 700; letter-spacing: 0.02em; color: var(--gold-bright); margin-bottom: 26px; line-height: 1.4; }
 /* Tighter lines and paragraphs: it reads as a story, not a poster. */
 /* The bio in a plain, regular-weight face: easy to read, not bold. */
-.bio { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 400; line-height: 1.6; color: var(--body); max-width: 600px; }
+.bio { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 400; line-height: 1.6; color: var(--body); max-width: 520px; }
 .bio strong { font-weight: 600; }
 .bio p { margin: 0 0 14px; }
 @media (max-width: 900px) {
