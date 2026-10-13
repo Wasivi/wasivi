@@ -35,7 +35,7 @@ const CYCLE = 16;
 const SURGE = 0.45; // share of the cycle spent coming forward
 const HOLD = 0.12; // then a pause at the front
 const Z_BACK = -10;
-const Z_FRONT = 3.4; // comes out at you: about twice its home size
+const Z_FRONT = 2.8; // comes out at you: about 1.7x its home size (15% under the old 2x)
 const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 // Start partway through the surge, at its home depth, so the page opens on
 // it at its usual size (and frozen test views stay put).
