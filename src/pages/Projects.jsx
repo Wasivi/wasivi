@@ -98,6 +98,7 @@ const PROJECTS = [
 
 export default function Projects({ embedded }) {
   const [openKey, setOpenKey] = useState(null);
+  const [missingVideos, setMissingVideos] = useState(() => new Set());
 
   useEffect(() => { if (!embedded) document.title = 'WASIVI — Projects'; }, [embedded]);
 
@@ -143,8 +144,18 @@ export default function Projects({ embedded }) {
         <div className={styles.detailInner}>
           {active && (
             <>
-              {active.video ? (
-                <video autoPlay loop muted playsInline controls src={active.video} />
+              {/* A project's video shows once its file is in public/videos;
+                  until then (or if it can't play) the placeholder stands in. */}
+              {active.video && !missingVideos.has(active.video) ? (
+                <video
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  controls
+                  src={active.video}
+                  onError={() => setMissingVideos((m) => new Set(m).add(active.video))}
+                />
               ) : (
                 <div className={styles.videoslot}>[ VIDEO COMING ]</div>
               )}
