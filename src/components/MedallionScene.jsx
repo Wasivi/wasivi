@@ -18,6 +18,24 @@ const KEY_LIGHT_POS = new THREE.Vector3(-3.6, 2.4, 2.6); // relative to the meda
 // Where the medallion is right now; the key light follows it so it stays lit
 // wherever it travels.
 const medallionPos = new THREE.Vector3();
+// And its current size (world units across the ring), for the molecules.
+const medallionScale = { value: 1 };
+// How hard it's twirling right now (0–1), so the molecules swirl with it.
+const twirl = { value: 0 };
+
+// The choreography, one cycle every ~16s: it surges from deep at the back
+// all the way up to the front, holds there a moment, then twirls back into
+// the distance. Depths are world z (camera at CAMERA_END_Z): at the front it
+// looks ~1.35x its home size, at the back ~0.4x.
+const CYCLE = 16;
+const SURGE = 0.45; // share of the cycle spent coming forward
+const HOLD = 0.12; // then a pause at the front
+const Z_BACK = -10;
+const Z_FRONT = 1.75;
+const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+// Start partway through the surge, at its home depth, so the page opens on
+// it at its usual size (and frozen test views stay put).
+const CYCLE_START = 0.32 * CYCLE;
 
 const GLYPH_DEPTH = 0.7;
 const GLYPH_Z = -GLYPH_DEPTH / 2; // centred: the glyph juts out of both sides of the ring
@@ -288,8 +306,28 @@ function Medallion({ pointer, layout }) {
     const scale = L.radius * 2 * halfH;
     drift.current.scale.setScalar(scale);
 
+    // Where it is in the cycle: surging forward, holding, or twirling back.
+    const ph = ((time + CYCLE_START) % CYCLE) / CYCLE;
+    let z;
+    let swing = 0;
+    let boost = 0;
+    if (prefersReducedMotion) {
+      z = 0;
+    } else if (ph < SURGE) {
+      z = THREE.MathUtils.lerp(Z_BACK, Z_FRONT, easeInOut(ph / SURGE));
+    } else if (ph < SURGE + HOLD) {
+      z = Z_FRONT;
+    } else {
+      const q = (ph - SURGE - HOLD) / (1 - SURGE - HOLD);
+      z = THREE.MathUtils.lerp(Z_FRONT, Z_BACK, easeInOut(q));
+      // On the way back it loops out to one side and spins a full extra turn.
+      swing = Math.sin(Math.PI * q);
+      boost = ((Math.PI * 2) / ((1 - SURGE - HOLD) * CYCLE)) * (Math.PI / 2) * Math.sin(Math.PI * q);
+    }
+    twirl.value = swing;
+
     if (frozen) spin.current.rotation.y = THREE.MathUtils.degToRad(FROZEN_ANGLE);
-    else spin.current.rotation.y += dt * SPIN_SPEED * (prefersReducedMotion ? 0.4 : 1);
+    else spin.current.rotation.y += dt * (SPIN_SPEED * (prefersReducedMotion ? 0.4 : 1) + boost);
 
     // Rock: tips back and forward as it turns, on its own slower rhythm.
     rock.current.rotation.x = Math.sin(time * 0.37) * 0.26;
@@ -299,14 +337,15 @@ function Medallion({ pointer, layout }) {
     // and comes forward, floats a little — turning and rocking all the while,
     // so you see it change shape in 3D. Starts (time 0) at its home spot.
     // Mostly recedes; comes only a little forward so it never clips the top.
-    const depth = (-0.5 + Math.sin(time * 0.19) * 0.9) * scale;
-    const reachX = Math.max(0, halfW * ((CAMERA_END_Z - 0.4 * scale) / CAMERA_END_Z) - scale * 1.3);
+    // Centre stage, travelling in depth: it surges forward and twirls back
+    // (see the choreography above), turning and rocking all the while.
     drift.current.position.set(
-      homeX + Math.sin(time * 0.12) * reachX,
-      homeY - scale * 0.12 + Math.sin(time * 0.27) * scale * 0.1,
-      depth
+      homeX + Math.sin(time * 0.12) * scale * 0.06 + swing * scale * 0.9,
+      homeY + Math.sin(time * 0.27) * scale * 0.05 + swing * scale * 0.15,
+      frozen ? 0 : z
     );
     medallionPos.copy(drift.current.position);
+    medallionScale.value = scale;
 
     const ease = 1 - Math.exp(-dt * 3); // frame-rate independent damping
     const tx = -pointer.current.y * MAX_TILT;
@@ -507,6 +546,133 @@ function GoldDust({ count, focus }) {
 }
 
 // ---------------------------------------------------------------------------
+// Molecules: glossy gold and silver spheres held around the medallion in a
+// loose cloud, each on its own slow orbit. Move the pointer through them and
+// they scatter, then spring back into place.
+// ---------------------------------------------------------------------------
+
+function Molecules({ count, pointer }) {
+  const gold = useRef();
+  const silver = useRef();
+  const camera = useThree((s) => s.camera);
+  const nSilver = Math.round(count * 0.35);
+  const nGold = count - nSilver;
+
+  const motes = useMemo(() => {
+    const list = [];
+    for (let i = 0; i < count; i++) {
+      // A shell around the ring: wider than it is deep, so they read as a
+      // halo from the front and a cloud from the side.
+      list.push({
+        r: 1.35 + Math.pow(Math.random(), 1.5) * 1.1,
+        theta: Math.random() * Math.PI * 2,
+        phi: (Math.random() - 0.5) * 1.6,
+        speed: (0.04 + Math.random() * 0.08) * (Math.random() < 0.5 ? -1 : 1),
+        bob: Math.random() * Math.PI * 2,
+        ang: 0,
+        size: 0.075 + Math.pow(Math.random(), 2) * 0.17,
+        // Every sixth one gets thrown in from off-screen now and then.
+        thrower: i % 6 === 0,
+        nextThrow: 2 + i * 0.9 + Math.random() * 4,
+        loose: 0,
+        pos: new THREE.Vector3(),
+        vel: new THREE.Vector3(),
+        placed: false,
+      });
+    }
+    return list;
+  }, [count]);
+
+  // Many shades of gold and silver, never brown: pale champagne to bright
+  // yellow gold; bright chrome to soft pewter.
+  useEffect(() => {
+    const golds = ['#f4e2a0', '#ecd27a', '#e6c860', '#dcb845', '#f0d68a', '#d8b955'];
+    const silvers = ['#f6f7f8', '#e3e6e9', '#cfd4d9', '#bcc2c9'];
+    const c = new THREE.Color();
+    for (let i = 0; i < nGold; i++) gold.current.setColorAt(i, c.set(golds[i % golds.length]));
+    for (let i = 0; i < nSilver; i++) silver.current.setColorAt(i, c.set(silvers[i % silvers.length]));
+    gold.current.instanceColor.needsUpdate = true;
+    silver.current.instanceColor.needsUpdate = true;
+  }, [nGold, nSilver]);
+
+  const tmp = useMemo(
+    () => ({ m: new THREE.Matrix4(), q: new THREE.Quaternion(), s: new THREE.Vector3(), target: new THREE.Vector3(), hand: new THREE.Vector3(), dir: new THREE.Vector3(), d: new THREE.Vector3() }),
+    []
+  );
+
+  useFrame((state, delta) => {
+    const dt = Math.min(delta, 0.05);
+    const t = state.clock.elapsedTime;
+    const sc = medallionScale.value;
+
+    // Where the pointer is, at the medallion's depth.
+    tmp.dir.set(pointer.current.x, pointer.current.y, 0.5).unproject(camera).sub(camera.position).normalize();
+    const k = (medallionPos.z - camera.position.z) / tmp.dir.z;
+    tmp.hand.copy(camera.position).addScaledVector(tmp.dir, k);
+    const reach = 0.55 * sc;
+
+    let gi = 0;
+    let si = 0;
+    motes.forEach((m, i) => {
+      // Each keeps its own slow orbit, and swirls fast as the medallion
+      // twirls back.
+      m.ang += dt * (m.speed + Math.sign(m.speed) * twirl.value * 1.6) * (prefersReducedMotion ? 0.2 : 1);
+      const th = m.theta + m.ang;
+      const ph = m.phi + Math.sin(t * 0.3 + m.bob) * 0.08;
+      // Centrifugal force: as the medallion twirls they fling outward.
+      const rr = m.r * (1 + 0.55 * twirl.value);
+      tmp.target.set(
+        Math.cos(th) * Math.cos(ph) * rr * 1.1,
+        Math.sin(ph) * rr * 0.85,
+        Math.sin(th) * Math.cos(ph) * rr * 0.6
+      ).multiplyScalar(sc * 0.5).add(medallionPos);
+
+      if (!m.placed) { m.pos.copy(tmp.target); m.placed = true; }
+      // Thrown in: launched from beyond the edge of the screen, close to
+      // the viewer, hard toward its orbit — it overshoots and bounces in.
+      if (m.thrower && !prefersReducedMotion && t > m.nextThrow) {
+        const side = Math.random() < 0.5 ? -1 : 1;
+        m.pos.set(medallionPos.x + side * sc * 3.2, medallionPos.y + (Math.random() - 0.3) * sc * 1.4, medallionPos.z + sc * 1.6);
+        m.vel.copy(tmp.target).sub(m.pos).multiplyScalar(2.4);
+        m.loose = 2.2;
+        m.nextThrow = t + 10 + Math.random() * 9;
+      }
+      m.loose = Math.max(0, m.loose - dt);
+      // Spring home (springier while thrown, so it bounces), pushed away by
+      // the hand, with damping.
+      tmp.d.copy(tmp.target).sub(m.pos).multiplyScalar(m.loose > 0 ? 6 : 3.2);
+      m.vel.addScaledVector(tmp.d, dt);
+      tmp.d.copy(m.pos).sub(tmp.hand);
+      tmp.d.z = 0;
+      const dist = tmp.d.length();
+      if (dist < reach && dist > 1e-4) m.vel.addScaledVector(tmp.d.normalize(), (1 - dist / reach) * 9 * sc * dt);
+      m.vel.multiplyScalar(Math.exp(-dt * (m.loose > 0 ? 0.9 : 2.6)));
+      m.pos.addScaledVector(m.vel, dt);
+
+      tmp.s.setScalar(m.size * sc * 0.5);
+      tmp.m.compose(m.pos, tmp.q, tmp.s);
+      if (i < nSilver) silver.current.setMatrixAt(si++, tmp.m);
+      else gold.current.setMatrixAt(gi++, tmp.m);
+    });
+    gold.current.instanceMatrix.needsUpdate = true;
+    silver.current.instanceMatrix.needsUpdate = true;
+  });
+
+  return (
+    <>
+      <instancedMesh ref={gold} args={[null, null, nGold]} frustumCulled={false} castShadow>
+        <sphereGeometry args={[1, 32, 24]} />
+        <meshStandardMaterial color="#ffffff" metalness={1} roughness={0.16} envMapIntensity={1.35} />
+      </instancedMesh>
+      <instancedMesh ref={silver} args={[null, null, nSilver]} frustumCulled={false} castShadow>
+        <sphereGeometry args={[1, 32, 24]} />
+        <meshStandardMaterial color="#ffffff" metalness={1} roughness={0.1} envMapIntensity={1.3} />
+      </instancedMesh>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Lighting: one warm raking key, faint cool rim, near-zero ambient, and a
 // black studio environment whose bright shapes echo the key — so reflections
 // agree with the lighting instead of fighting it.
@@ -600,8 +766,8 @@ export default function MedallionScene() {
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
   }, []);
-  const dustCount = useMemo(
-    () => (typeof window !== 'undefined' && window.innerWidth < 700 ? 260 : 520),
+  const moleculeCount = useMemo(
+    () => (typeof window !== 'undefined' && window.innerWidth < 700 ? 18 : 30),
     []
   );
 
@@ -620,7 +786,7 @@ export default function MedallionScene() {
           <Medallion pointer={pointer} layout={layout} />
           <CameraRig focus={focus} />
         </Suspense>
-        <GoldDust count={dustCount} focus={focus} />
+        <Molecules count={moleculeCount} pointer={pointer} />
       </Canvas>
     </div>
   );

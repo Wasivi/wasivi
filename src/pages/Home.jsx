@@ -29,6 +29,9 @@ export default function Home({ embedded }) {
       <div className="tagline">The medium changed. The thinking never did.</div>
 
       <Nav variant="hero" />
+
+      <div className="hero-corner hero-corner-left">Natalie Walker — Founder</div>
+      <div className="hero-corner hero-corner-right">Scroll ↓</div>
     </section>
   );
 }
