@@ -37,7 +37,7 @@
   text-indent: 0.35em;
   font-weight: 400;
   line-height: 1;
-  color: var(--silver);
+  color: var(--wordmark);
 }
 .social-row { margin-top: 28px; display: flex; gap: 24px; align-items: center; }
 .social-row a { color: var(--chrome); text-decoration: none; display: flex; }
@@ -120,4 +120,13 @@
   mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent),
               linear-gradient(to bottom, #000 82%, transparent);
   mask-composite: intersect;
+}
+
+/* In daylight WASIVI is brushed silver: a soft sheen runs across the
+   letters, so it reads as metal rather than grey ink. */
+:root[data-theme="light"] .wordmark span[data-letter] {
+  background: linear-gradient(170deg, #9aa0a6 0%, #6f757c 45%, #a7adb3 62%, #747a81 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }

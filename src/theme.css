@@ -7,6 +7,7 @@
   --muted: #8c8a80;
   --lightgray: #b8b8b6;
   --silver: #e6e8e9;      /* headings */
+  --wordmark: #e6e8e9;    /* WASIVI: bright chrome on the dark page */
   --faint: #5a564d;
   --body: #ddd9cc;        /* long-form text */
   --rule: #24211b;        /* hairlines */
@@ -37,6 +38,7 @@
   --muted: #66635b;
   --lightgray: #45433d;
   --silver: #232326;
+  --wordmark: #80868d;    /* WASIVI: silver-grey, the same chrome in daylight */
   --faint: #8d897e;
   --body: #34332e;
   --rule: #dedbd2;
@@ -90,7 +92,7 @@ nav.hero-nav { padding: 0; margin-top: 24px; }
   font-size: 20px;
   letter-spacing: 0.35em;
   line-height: 1;
-  color: var(--silver);
+  color: var(--wordmark);
   text-decoration: none;
   padding-bottom: 7px;
 }
