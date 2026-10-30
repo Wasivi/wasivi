@@ -5,11 +5,11 @@ import * as THREE from 'three';
 import schedule from './channelSchedule.json';
 import { useTheme } from './ThemeToggle';
 
-// The approved How We Work artwork (the "Gold Thread Through the Hidden Map"
-// render with the gold string and mockup text removed), built as a real
-// relief sculpture: the almond is domed like a cast slab, its walls stand up
-// and its channels are carved in, lit by fixed lights while the camera
-// drifts around it (and follows the pointer), so the depth reads. As the
+// The approved How We Work artwork, re-rendered sharper and fitted onto the
+// channel maps (tools/sculpture_art.py), built as a real relief sculpture: the
+// almond is domed like a cast slab, its walls stand up and its channels are
+// carved in, lit by fixed lights while the camera drifts around it (and
+// follows the pointer), so the depth reads. As the
 // show advances, a bronze skeleton grows through its walls, then gold and
 // silver pour into its channels and rise in them, so by the last scene the
 // whole piece is filled.
@@ -24,7 +24,7 @@ import { useTheme } from './ThemeToggle';
 const ART = '/images/How_We_Work/artwork.jpg';
 const CHANNELS = '/images/How_We_Work/channels.png';
 const SKIN = '/images/How_We_Work/skin.png';
-const SRC = { w: 1672, h: 941 };
+const SRC = { w: 1672, h: 941 }; // the maps' size; the artwork is a multiple
 // The part of the image the artwork occupies; the sculpture is cut to this.
 const VIEW = { x: 320, y: 60, w: 1340, h: 870 };
 const K = schedule.channels.length;
@@ -76,6 +76,7 @@ function pixels(img, w, h, smooth) {
   c.height = h;
   const ctx = c.getContext('2d', { willReadFrequently: true });
   ctx.imageSmoothingEnabled = smooth;
+  ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(img, 0, 0, w, h);
   return ctx.getImageData(0, 0, w, h).data;
 }
@@ -83,6 +84,11 @@ function pixels(img, w, h, smooth) {
 // Height of the relief over the whole image, 0 (background) to ~1 (crown of
 // the dome): a slab with a narrow rounded edge and a broad, domed top, its
 // channels carved in with soft rounded floors.
+//
+// R: the body, soft and broad — the only part that moves the mesh. Anything
+//    fine here tears into sawteeth against the mesh's grid.
+// G: the full relief, walls, lines and all — read only for lighting, so it
+//    stays crisp at any size.
 function buildHeight(skinImg, chanImg, artImg) {
   const w = SRC.w >> 1;
   const h = SRC.h >> 1;
@@ -105,9 +111,10 @@ function buildHeight(skinImg, chanImg, artImg) {
   // keep the design on it when the piece turns.
   const rim = blur(Float32Array.from(mask), w, h, Math.round(w * 0.045));
   const dome = blur(Float32Array.from(mask), w, h, Math.round(w * 0.07));
-  blur(carve, w, h, 3, 3); // soft channel walls, so they don't streak side-on
-  blur(cut, w, h, 2, 2);
-  const data = new Uint16Array(w * h);
+  const soft = blur(Float32Array.from(carve), w, h, 7, 3);
+  blur(carve, w, h, 1, 2);
+  blur(cut, w, h, 1, 1);
+  const data = new Uint16Array(w * h * 2);
   for (let i = 0; i < w * h; i++) {
     // The edge rolls over gently from zero on the outline: never steep
     // enough for the design to smear into plain metal when seen side-on.
@@ -120,15 +127,16 @@ function buildHeight(skinImg, chanImg, artImg) {
     // Carved in all over, edge included: the artwork's lines are cut into
     // the whole surface, and the rolled edge carries grooves that follow
     // the outline, like the skeleton's ribs — never a plain smooth band.
-    const edge = mask[i] * (1 - smoothstep(0.75, 0.98, rim[i]));
+    // The grooves stay on the rim; on the face they'd hatch over the design.
+    const edge = mask[i] * (1 - smoothstep(0.6, 0.78, rim[i]));
     const ribs = 0.5 + 0.5 * Math.cos(rim[i] * Math.PI * 2 * 9);
-    const z = body * (0.35 + crown * 0.65)
-      - carve[i] * 0.22 * body
-      - cut[i] * 0.03 * mask[i]
-      - ribs * edge * 0.045;
-    data[i] = THREE.DataUtils.toHalfFloat(z);
+    const shape = body * (0.35 + crown * 0.65);
+    data[i * 2] = THREE.DataUtils.toHalfFloat(shape - soft[i] * 0.14 * body);
+    data[i * 2 + 1] = THREE.DataUtils.toHalfFloat(
+      shape - carve[i] * 0.22 * body - cut[i] * 0.03 * mask[i] - ribs * edge * 0.045
+    );
   }
-  const tex = new THREE.DataTexture(data, w, h, THREE.RedFormat, THREE.HalfFloatType);
+  const tex = new THREE.DataTexture(data, w, h, THREE.RGFormat, THREE.HalfFloatType);
   tex.flipY = true; // match the image textures' orientation
   tex.minFilter = tex.magFilter = THREE.LinearFilter;
   tex.needsUpdate = true;
@@ -144,18 +152,22 @@ function loadImage(url) {
   });
 }
 
-function loadTexture(url, nearest = false) {
+function loadTexture(url, { nearest = false, mipmaps = false } = {}) {
   const tex = new THREE.TextureLoader().load(url);
   tex.colorSpace = THREE.NoColorSpace; // raw in, raw out: colours match the file
-  // Channel indices must never be blended between neighbouring pixels.
   tex.minFilter = tex.magFilter = nearest ? THREE.NearestFilter : THREE.LinearFilter;
-  tex.generateMipmaps = false;
+  tex.generateMipmaps = mipmaps;
+  if (mipmaps) {
+    tex.minFilter = THREE.LinearMipmapLinearFilter; // no shimmer when drawn small
+    tex.anisotropy = 8; // stays sharp as the piece turns away
+  }
   return tex;
 }
 
 const shared = /* glsl */ `
   uniform sampler2D uHeight;
-  uniform sampler2D uChan;
+  uniform sampler2D uChan;    // R and G, read smoothly
+  uniform sampler2D uChanIdx; // B, read exactly: indices must never blend
   uniform sampler2D uParams; // per channel: R fill, G silver, B shade, A phase
   uniform float uCount;
   uniform vec4 uCrop; // x, y (from bottom), w, h — normalised
@@ -167,10 +179,11 @@ const shared = /* glsl */ `
   // Breathing is delicate and everywhere: every piece — each channel, each
   // stretch of wall — swells and settles on its own slow breath (~10s),
   // out of step with its neighbours. Nothing moves as a whole.
+  float wallPhase(vec2 tc) {
+    return texture2D(uSkin, tc).g * 9.0 + tc.x * 5.0 + tc.y * 3.0;
+  }
   float pieceBreath(vec2 tc, vec4 ch, vec4 p, float inside) {
-    float wallPhase = texture2D(uSkin, tc).g * 9.0 + tc.x * 5.0 + tc.y * 3.0;
-    float phase = mix(wallPhase, p.a * 6.2832, inside);
-    return sin(uTime * 0.63 + phase);
+    return sin(uTime * 0.63 + mix(wallPhase(tc), p.a * 6.2832, inside));
   }
 
   const float POUR_SOFT = 0.4;
@@ -178,6 +191,7 @@ const shared = /* glsl */ `
   // How far a channel's poured metal has risen at this point (0–1).
   float pour(vec2 tc, out vec4 ch, out vec4 p) {
     ch = texture2D(uChan, tc);
+    ch.b = texture2D(uChanIdx, tc).b;
     float inside = smoothstep(0.2, 0.5, ch.g);
     float idx = floor(ch.b * 255.0 + 0.5);
     p = texture2D(uParams, vec2((idx + 0.5) / uCount, 0.5));
@@ -192,20 +206,12 @@ const vertexShader = /* glsl */ `
   ${shared}
   varying vec2 vTc;
   varying vec3 vWorld;
-  varying float vBreath;
 
   void main() {
     vTc = uCrop.xy + uv * uCrop.zw;
     // Knit-fabric ripple: soft waves run through the surface as it breathes.
     vTc += vec2(sin(uv.y * 12.0 + uTime * 0.5), cos(uv.x * 10.0 + uTime * 0.42))
       * 0.0035 * uCrop.zw * (0.4 + 0.6 * uBreath);
-    vec4 ch; vec4 p;
-    float fill = pour(vTc, ch, p);
-    float inside = smoothstep(0.2, 0.5, ch.g);
-    float b = pieceBreath(vTc, ch, p, inside);
-    vBreath = b;
-    // Poured metal rises most of the way up its channel; each piece lifts
-    // and sinks a little with its breath.
     float h = texture2D(uHeight, vTc).r;
     // The whole relief heaves up on the breath in and settles on the breath
     // out; each piece adds its own small breath on top.
@@ -215,7 +221,10 @@ const vertexShader = /* glsl */ `
     float drift = sin(uv.x * 3.1 + uTime * 0.31) * sin(uv.y * 2.4 - uTime * 0.23)
                 + 0.6 * sin((uv.x + uv.y) * 4.3 - uTime * 0.19);
     float body = smoothstep(0.0, 0.2, h);
-    float z = (h * heave + drift * 0.09 * body + fill * 0.1 + b * 0.06 * step(0.001, h)) * uDepth;
+    // Each stretch lifts and sinks a little on its own breath. This moves the
+    // mesh, so it runs smoothly across channels, never channel by channel.
+    float b = sin(uTime * 0.63 + wallPhase(vTc));
+    float z = (h * heave + drift * 0.09 * body + b * 0.06 * body) * uDepth;
     // The outline swells out on the breath in, a little unevenly, like a
     // chest rising.
     vec2 xy = position.xy * (1.0 + 0.035 * uBreath + 0.012 * drift * uBreath);
@@ -234,7 +243,6 @@ const fragmentShader = /* glsl */ `
   uniform mat3 uNormalMat; // turns the relief's normals with the sculpture
   varying vec2 vTc;
   varying vec3 vWorld;
-  varying float vBreath;
   uniform float uLight; // 0 = night, 1 = daylight (light theme)
 
   const vec3 GOLD_DULL = vec3(0.50, 0.40, 0.17);
@@ -265,7 +273,10 @@ const fragmentShader = /* glsl */ `
   void main() {
     vec4 sk = texture2D(uSkin, vTc);
     float shape = smoothstep(0.85, 0.97, sk.r); // the locked almond outline, crisp
-    if (shape < 0.5) discard; // a solid edge: no see-through fringe where front meets back
+    // How much of this screen pixel the outline covers: a smooth edge, solid
+    // right up to it, with no see-through fringe where front meets back.
+    float cover = clamp((shape - 0.5) / max(fwidth(shape), 0.0001) + 0.5, 0.0, 1.0);
+    if (cover <= 0.0) discard;
 
     vec3 art = texture2D(uArt, vTc).rgb;
     float lum = dot(art, vec3(0.299, 0.587, 0.114));
@@ -276,10 +287,11 @@ const fragmentShader = /* glsl */ `
     // Surface normal from the relief's slope, plus the artwork's own fine
     // engraving so every thread catches the light.
     vec2 e = uTexel;
-    float hx = texture2D(uHeight, vTc + vec2(e.x, 0.0)).r - texture2D(uHeight, vTc - vec2(e.x, 0.0)).r;
-    float hy = texture2D(uHeight, vTc + vec2(0.0, e.y)).r - texture2D(uHeight, vTc - vec2(0.0, e.y)).r;
+    vec2 hx = texture2D(uHeight, vTc + vec2(e.x, 0.0)).rg - texture2D(uHeight, vTc - vec2(e.x, 0.0)).rg;
+    vec2 hy = texture2D(uHeight, vTc + vec2(0.0, e.y)).rg - texture2D(uHeight, vTc - vec2(0.0, e.y)).rg;
     vec2 step = 2.0 * e / uCrop.zw * uSize; // scene units across the samples
-    vec2 slope = vec2(hx, hy) * uDepth / step;
+    vec2 slope = vec2(hx.g, hy.g) * uDepth / step;
+    vec2 bodySlope = vec2(hx.r, hy.r) * uDepth / step;
     vec2 f = e * 0.5;
     float lx = lumAt(vTc + vec2(f.x, 0.0)) - lumAt(vTc - vec2(f.x, 0.0));
     float ly = lumAt(vTc + vec2(0.0, f.y)) - lumAt(vTc - vec2(0.0, f.y));
@@ -290,7 +302,7 @@ const fragmentShader = /* glsl */ `
     // Never blank: where the surface turns steep (the rim, the tops and
     // sides you see when it's turned), the picture's lines smear, so carve
     // in contour lines that follow the shape, like a topographic map.
-    float steep = smoothstep(0.25, 0.75, 1.0 - nLocal.z);
+    float steep = smoothstep(0.25, 0.75, 1.0 - normalize(vec3(-bodySlope, 1.0)).z);
     float hv = texture2D(uHeight, vTc).r;
     float g = abs(fract(hv * 34.0) - 0.5);
     float groove = 1.0 - smoothstep(0.06, 0.16, g);
@@ -334,10 +346,10 @@ const fragmentShader = /* glsl */ `
     lit += tint * (s1 * 0.9 + s2 * 0.35) * mix(0.25, 1.0, metalness) * (0.3 + lum);
 
     // The piece brightens a touch as it breathes in, each part on its own.
-    lit *= 0.95 + 0.08 * uBreath + 0.06 * vBreath;
-    lit *= 1.0 - 0.6 * groove * steep;
-    lit += ridge * steep * 0.18 * mix(vec3(0.9), normalize(col + 0.001) * 1.4, metalness);
-    gl_FragColor = vec4(lit, 1.0);
+    lit *= 0.95 + 0.08 * uBreath + 0.06 * pieceBreath(vTc, ch, p, inside);
+    lit *= 1.0 - 0.22 * groove * steep;
+    lit += ridge * steep * 0.08 * mix(vec3(0.9), normalize(col + 0.001) * 1.4, metalness);
+    gl_FragColor = vec4(lit, cover);
   }
 `;
 
@@ -370,8 +382,9 @@ function Sculpture({ progress }) {
     return {
       params: tex,
       uniforms: {
-        uArt: { value: loadTexture(ART) },
-        uChan: { value: loadTexture(CHANNELS, true) },
+        uArt: { value: loadTexture(ART, { mipmaps: true }) },
+        uChan: { value: loadTexture(CHANNELS) },
+        uChanIdx: { value: loadTexture(CHANNELS, { nearest: true }) },
         uSkin: { value: loadTexture(SKIN) },
         uHeight: { value: null },
         uParams: { value: tex },
@@ -440,7 +453,7 @@ function Sculpture({ progress }) {
           vertexShader={vertexShader}
           fragmentShader={fragmentShader}
           uniforms={uniforms}
-          transparent
+          alphaToCoverage
         />
       </mesh>
       <mesh ref={back} geometry={geometry} scale={[1, 1, -1]}>
@@ -448,7 +461,7 @@ function Sculpture({ progress }) {
           vertexShader={vertexShader}
           fragmentShader={fragmentShader}
           uniforms={backUniforms}
-          transparent
+          alphaToCoverage
         />
       </mesh>
     </group>
@@ -602,8 +615,14 @@ function Placement({ place, children }) {
   return <group ref={group}>{children}</group>;
 }
 
+// Render at the screen's own sharpness. When frames suffer it eases down, but
+// never to 1: on a retina screen that doubles every pixel.
+const screenDpr = typeof window !== 'undefined' ? window.devicePixelRatio : 1;
+const DPR_HIGH = Math.min(screenDpr, 2);
+const DPR_LOW = Math.min(screenDpr, 1.5);
+
 export default function ChannelArt({ progress, place, active = true }) {
-  const [dpr, setDpr] = useState(1.75);
+  const [dpr, setDpr] = useState(DPR_HIGH);
   return (
     <Canvas
       flat
@@ -614,7 +633,7 @@ export default function ChannelArt({ progress, place, active = true }) {
       frameloop={active ? 'always' : 'never'} // rests while scrolled away
       style={{ background: 'transparent' }} // the page's stage shows through
     >
-      <PerformanceMonitor onDecline={() => setDpr(1)} onIncline={() => setDpr(1.75)} />
+      <PerformanceMonitor onDecline={() => setDpr(DPR_LOW)} onIncline={() => setDpr(DPR_HIGH)} />
       <Placement place={place}>
         <Sculpture progress={progress} />
       </Placement>
