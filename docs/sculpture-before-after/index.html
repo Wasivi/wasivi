@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sculpture Before and After</title>
+<style>
+  /* One column of wipe comparisons on the site's own black, so the pictures read as they do on the page. */
+  :root {
+    color-scheme: dark;
+    --black: #15130f;
+    --ink: #f2efe6;
+    --muted: #a9a496;
+    --gold: #a89c3e;
+    --line: #38342a;
+    --display: Georgia, 'Times New Roman', serif;
+    --label: 'Engravers Gothic', Copperplate, Garamond, serif;
+    --body: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  }
+  body {
+    margin: 0;
+    background: var(--black);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.55;
+    padding-block: clamp(32px, 6vw, 72px);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  main { max-width: 1100px; margin-inline: auto; display: grid; gap: clamp(36px, 5vw, 64px); }
+  header, footer { display: grid; gap: 12px; max-width: 62ch; }
+  .eyebrow {
+    margin: 0;
+    font-family: var(--label);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  h1 {
+    margin: 0;
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(32px, 5vw, 50px);
+    line-height: 1.1;
+    text-wrap: balance;
+  }
+  header p:last-child, footer p { margin: 0; color: var(--muted); }
+  section { display: grid; gap: 12px; min-width: 0; }
+  h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 22px; line-height: 1.25; }
+  .note { margin: 0; color: var(--muted); max-width: 62ch; }
+
+  .cmp { position: relative; margin: 0; overflow: hidden; background: var(--black); border: 1px solid var(--line); --pos: 50%; }
+  .cmp img { display: block; width: 100%; height: auto; }
+  .cmp .new { position: absolute; inset: 0; clip-path: inset(0 0 0 var(--pos)); }
+  .cmp .line { position: absolute; top: 0; bottom: 0; left: var(--pos); width: 2px; margin-left: -1px; background: var(--gold); pointer-events: none; }
+  .cmp .line::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 30px;
+    height: 30px;
+    margin: -15px 0 0 -15px;
+    border-radius: 50%;
+    background: var(--black);
+    border: 2px solid var(--gold);
+  }
+  .cmp input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; touch-action: pan-y; }
+  .cmp:has(input:focus-visible) { outline: 2px solid var(--gold); outline-offset: 3px; }
+  .tag {
+    position: absolute;
+    top: 10px;
+    padding: 2px 8px;
+    background: var(--black);
+    color: var(--ink);
+    font-family: var(--label);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+  .tag.old { left: 10px; }
+  .tag.now { right: 10px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">How We Work</p>
+    <h1>The sculpture, old and new</h1>
+    <p>Drag across each picture. Old, on the left, is what wasivi.com showed until October 30, 2026. New, on the right, is what it shows now.</p>
+  </header>
+
+  <section>
+    <h2>Slide 5, the spiral, close up</h2>
+    <p class="note">Doubled in size so every pixel shows. Watch the edges of the gold.</p>
+    <figure class="cmp">
+      <img src="old-detail-b.jpg" alt="Old version, close up: the edges of the gold are torn into jagged teeth.">
+      <img class="new" src="new-detail-b.jpg" alt="New version, close up: the same area with clean, continuous lines.">
+      <span class="line"></span><span class="tag old">Old</span><span class="tag now">New</span>
+      <input type="range" min="0" max="100" value="50" aria-label="Compare old and new, slide 5 spiral close up">
+    </figure>
+  </section>
+
+  <section>
+    <h2>Slide 5, the channels, close up</h2>
+    <p class="note">Also doubled in size.</p>
+    <figure class="cmp">
+      <img src="old-detail-a.jpg" alt="Old version, close up: gold and dark channels with sawtooth edges.">
+      <img class="new" src="new-detail-a.jpg" alt="New version, close up: smooth gold and silver channels.">
+      <span class="line"></span><span class="tag old">Old</span><span class="tag now">New</span>
+      <input type="range" min="0" max="100" value="50" aria-label="Compare old and new, slide 5 channels close up">
+    </figure>
+  </section>
+
+  <section>
+    <h2>Slide 1</h2>
+    <figure class="cmp">
+      <img src="old-s1.jpg" alt="Old version of slide 1.">
+      <img class="new" src="new-s1.jpg" alt="New version of slide 1.">
+      <span class="line"></span><span class="tag old">Old</span><span class="tag now">New</span>
+      <input type="range" min="0" max="100" value="50" aria-label="Compare old and new, slide 1">
+    </figure>
+  </section>
+
+  <section>
+    <h2>Slide 5</h2>
+    <figure class="cmp">
+      <img src="old-s5.jpg" alt="Old version of slide 5.">
+      <img class="new" src="new-s5.jpg" alt="New version of slide 5.">
+      <span class="line"></span><span class="tag old">Old</span><span class="tag now">New</span>
+      <input type="range" min="0" max="100" value="50" aria-label="Compare old and new, slide 5">
+    </figure>
+  </section>
+
+  <section>
+    <h2>Slide 11</h2>
+    <figure class="cmp">
+      <img src="old-s11.jpg" alt="Old version of slide 11.">
+      <img class="new" src="new-s11.jpg" alt="New version of slide 11.">
+      <span class="line"></span><span class="tag old">Old</span><span class="tag now">New</span>
+      <input type="range" min="0" max="100" value="50" aria-label="Compare old and new, slide 11">
+    </figure>
+  </section>
+
+  <footer>
+    <p>Captured at 1470 × 956 at retina sharpness, a typical laptop screen. The piece breathes and drifts, so the two sides don't line up exactly.</p>
+  </footer>
+</main>
+
+<script>
+  document.querySelectorAll('.cmp input').forEach((input) => {
+    const figure = input.closest('.cmp');
+    const place = () => figure.style.setProperty('--pos', input.value + '%');
+    input.addEventListener('input', place);
+    place();
+  });
+</script>
+</body>
+</html>
